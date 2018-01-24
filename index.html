@@ -1,0 +1,26 @@
+<html>
+    <head>
+        
+    </head>
+    <body>
+        <script type="text/javascript">
+            // crée un contexteaudio
+            var contexteAudio = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // create Oscillator node
+            var oscillator = contexteAudio.createOscillator();
+            oscillator.type = 'square';
+            oscillator.frequency.value = 440; // valeur en hertz
+            oscillator.detune.value = 0.2;
+
+            var gainNode = contexteAudio.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(contexteAudio.destination);
+            gainNode.gain.setValueAtTime(0.1, contexteAudio.currentTime);
+            
+            oscillator.start();
+            oscillator.stop(contexteAudio.currentTime + 2);
+            
+        </script>
+    </body>
+</html>
