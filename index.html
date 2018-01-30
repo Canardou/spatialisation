@@ -26,6 +26,7 @@
         var point_count = 100;
         var reset_point = 0;
         var point_status = new Uint8Array(100);
+        var point_speed = new Float32Array(100);
         
         window.onload=function(){
             window.requestAnimationFrame(snapshot);
@@ -44,10 +45,14 @@
         	canvas.width = file.videoWidth;
         	canvas.height = file.videoHeight;
         	
-    	    var coords = {x:Math.floor(Math.random()*canvas.width), y:30+Math.floor(Math.random()*(canvas.height-60))}; 
-            curr_xy[reset_point<<1] = coords.x;
-            curr_xy[(reset_point<<1)+1] = coords.y;
-            reset_point = (reset_point+1)%point_count;
+    	    for(var i=0; i<100; i++){
+    	        if((point_speed[i] == 0 && reset_point == 0) || point_status[i] == 0){
+            	    var coords = {x:Math.floor(Math.random()*canvas.width), y:30+Math.floor(Math.random()*(canvas.height-60))}; 
+                    curr_xy[i<<1] = coords.x;
+                    curr_xy[(i<<1)+1] = coords.y;
+    	        }
+    	    }
+        	reset_point = (reset_point+1)%60;
         	
         	var ctx = canvas.getContext('2d');
         	ctx.drawImage(file, 0, 0);
@@ -88,29 +93,34 @@
             window.requestAnimationFrame(snapshot);
         }
 
-        function draw_circle(ctx, x, y, speed) {
+        function draw_circle(ctx, x, y, velocity, speed) {
             ctx.beginPath();
-            ctx.arc(x, y, 2, 0, Math.PI*2, true);
-            ctx.closePath();
-            ctx.fillStyle = "rgb(0,255,"+speed+")";
-            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(x,y);
+            ctx.lineTo(x+velocity.x,y+velocity.y);
+            ctx.strokeStyle = "rgb(0,255,"+speed+")";
+            ctx.stroke();
         }
 
+        var sound_avg = 0;
         function prune_oflow_points(ctx) {
             var n = point_count;
             var i=0;
             var sound = 0;
             for(; i < n; ++i) {
                 if(point_status[i] == 1) {
-                    var speed = Math.floor(Math.sqrt((prev_xy[i<<1]-curr_xy[i<<1])*(prev_xy[i<<1]-curr_xy[i<<1]) + (prev_xy[(i<<1)+1]-curr_xy[(i<<1)+1])*(prev_xy[(i<<1)+1]-curr_xy[(i<<1)+1])));
+                    var velocity = {x:prev_xy[i<<1]-curr_xy[i<<1], y:prev_xy[(i<<1)+1]-curr_xy[(i<<1)+1]}
+                    var speed = Math.floor(Math.sqrt(velocity.x*velocity.x + velocity.y*velocity.y));
                     speed = Math.min(Math.max(0,speed),255);
-                    if(speed != 0){
+                    point_speed[i] = speed;
+                    if(speed > 0){
                         sound = Math.max(sound,speed);
                     }
-                    draw_circle(ctx, curr_xy[i<<1], curr_xy[(i<<1)+1], speed);
+                    draw_circle(ctx, curr_xy[i<<1], curr_xy[(i<<1)+1], velocity, speed);
                 }
             }
-            gainNode.gain.setValueAtTime(sound/255, contexteAudio.currentTime);
+            sound_avg = (sound_avg*9 + sound)/10;
+            gainNode.gain.setValueAtTime(sound_avg/128, contexteAudio.currentTime);
         }
 
         function relMouseCoords(event) {
