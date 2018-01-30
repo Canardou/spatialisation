@@ -3,31 +3,49 @@
         <script type="text/javascript" src="jsfeat.js"></script>
     </head>
     <body>
-        <video id="file" autoplay loop>
+        <video id="file" autoplay loop style="display: none;">
             <source src=IRIT01.webm type=video/webm>
         </video>
         <p><canvas id="canvas"></canvas></p>
         <script type="text/javascript">
+        /* global jsfeat */
         "use strict";
         var file = document.getElementById('file');
         var canvas = document.getElementById('canvas');
         var videoStream = null;
-        var preLog = document.getElementById('preLog');
         
-        function log(text)
-        {
-        	if (preLog) preLog.textContent += ('\n' + text);
-        	else alert(text);
-        }
+        var curr_img_pyr = new jsfeat.pyramid_t(3);
+        var prev_img_pyr = new jsfeat.pyramid_t(3);
+        var win_size = 20,
+            max_iterations = 30,
+            epsilon = 0.01,
+            min_eigen = 0.001;
+        
+        var prev_xy = new Float32Array(100*2);
+        var curr_xy = new Float32Array(100*2);
+        var point_count = 0;
+        var point_status = new Uint8Array(100);
         
         window.onload=function(){
             window.requestAnimationFrame(snapshot);
+            curr_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
+            prev_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
+            
         }
             
         function snapshot()
         {
         	canvas.width = file.videoWidth;
         	canvas.height = file.videoHeight;
+        	
+        	if(point_count < 100){
+        	    var coords = {x:Math.floor(Math.random()*canvas.width), y:30+Math.floor(Math.random()*(canvas.height-60))}; 
+                if(coords.x > 0 & coords.y > 0 & coords.x < canvas.width & coords.y < canvas.height) {
+                    curr_xy[point_count<<1] = coords.x;
+                    curr_xy[(point_count<<1)+1] = coords.y;
+                    point_count++;
+                }
+        	}
         	
         	var ctx = canvas.getContext('2d');
         	ctx.drawImage(file, 0, 0);
@@ -38,7 +56,21 @@
                  
                 var gray_img = new jsfeat.matrix_t(canvas.width, canvas.height, jsfeat.U8_t | jsfeat.C1_t);
                 var code = jsfeat.COLOR_RGBA2GRAY;
+                
+                var _pyr = prev_img_pyr;
+                prev_img_pyr = curr_img_pyr;
+                curr_img_pyr = _pyr;
+                var _pt_xy = prev_xy;
+                prev_xy = curr_xy;
+                curr_xy = _pt_xy;
+                
+                jsfeat.imgproc.grayscale(imageData.data, canvas.width, canvas.height, curr_img_pyr.data[0], code);
                 jsfeat.imgproc.grayscale(imageData.data, canvas.width, canvas.height, gray_img, code);
+                //jsfeat.imgproc.gaussian_blur(gray_img, gray_img, 5, 0);
+                //jsfeat.imgproc.equalize_histogram(gray_img, gray_img);
+                
+                curr_img_pyr.build(curr_img_pyr.data[0], true);
+                jsfeat.optical_flow_lk.track(prev_img_pyr, curr_img_pyr, prev_xy, curr_xy, point_count, win_size, max_iterations, point_status, epsilon, min_eigen);
                 
                 var data_u32 = new Uint32Array(imageData.data.buffer);
                 var alpha = (0xff << 24);
@@ -49,14 +81,65 @@
                 }
 
                 ctx.putImageData(imageData, 0, 0);
+                prune_oflow_points(ctx);
                 
         	}
         	catch (e){
-        	    console.log(e)
+        	    console.log(e);
         	}
             window.requestAnimationFrame(snapshot);
         }
         
+        function on_canvas_click(e) {
+            var coords = canvas.relMouseCoords(e);
+            if(coords.x > 0 & coords.y > 0 & coords.x < canvas.width & coords.y < canvas.height) {
+                curr_xy[point_count<<1] = coords.x;
+                curr_xy[(point_count<<1)+1] = coords.y;
+                point_count++;
+            }
+        }
+        canvas.addEventListener('click', on_canvas_click, false);
+
+        function draw_circle(ctx, x, y) {
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI*2, true);
+            ctx.closePath();
+            ctx.fillStyle = "rgb(0,255,0)";
+            ctx.fill();
+        }
+
+        function prune_oflow_points(ctx) {
+            var n = point_count;
+            var i=0,j=0;
+
+            for(; i < n; ++i) {
+                if(point_status[i] == 1) {
+                    if(j < i) {
+                        curr_xy[j<<1] = curr_xy[i<<1];
+                        curr_xy[(j<<1)+1] = curr_xy[(i<<1)+1];
+                    }
+                    draw_circle(ctx, curr_xy[j<<1], curr_xy[(j<<1)+1]);
+                    ++j;
+                }
+            }
+            point_count = j;
+        }
+
+        function relMouseCoords(event) {
+            var totalOffsetX=0,totalOffsetY=0,canvasX=0,canvasY=0;
+            var currentElement = this;
+
+            do {
+                totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
+                totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
+            } while(currentElement = currentElement.offsetParent)
+
+            canvasX = event.pageX - totalOffsetX;
+            canvasY = event.pageY - totalOffsetY;
+
+            return {x:canvasX, y:canvasY};
+        }
+        HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
         
         
         // crée un contexteaudio
