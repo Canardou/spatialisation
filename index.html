@@ -1,9 +1,9 @@
 <html>
     <head>
-        
+        <script type="text/javascript" src="jsfeat.js"></script>
     </head>
     <body>
-        <video controls loop id="file">
+        <video id="file" autoplay loop>
             <source src=IRIT01.webm type=video/webm>
         </video>
         <p><canvas id="canvas"></canvas></p>
@@ -20,34 +20,43 @@
         	else alert(text);
         }
         
-        var imageDataCurr;
-        var imageDataOld;
+        window.onload=function(){
+            window.requestAnimationFrame(snapshot);
+        }
+            
         function snapshot()
         {
         	canvas.width = file.videoWidth;
         	canvas.height = file.videoHeight;
         	
-        	canvas.getContext('2d').drawImage(file, 0, 0);
+        	var ctx = canvas.getContext('2d');
+        	ctx.drawImage(file, 0, 0);
         	try{
-            	var imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-            	imageDataCurr = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+            	var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             	
                 var pixels = imageData.data;
+                 
+                var gray_img = new jsfeat.matrix_t(canvas.width, canvas.height, jsfeat.U8_t | jsfeat.C1_t);
+                var code = jsfeat.COLOR_RGBA2GRAY;
+                jsfeat.imgproc.grayscale(imageData.data, canvas.width, canvas.height, gray_img, code);
                 
-                for(var i = 0, il = pixels.length; i < il; i++) {
-                    pixels[i] = Math.abs(pixels[i] - imageDataOld.data[i])*255;
+                var data_u32 = new Uint32Array(imageData.data.buffer);
+                var alpha = (0xff << 24);
+                var i = gray_img.cols*gray_img.rows, pix = 0;
+                while(--i >= 0) {
+                    pix = gray_img.data[i];
+                    data_u32[i] = alpha | (pix << 16) | (pix << 8) | pix;
                 }
+
+                ctx.putImageData(imageData, 0, 0);
                 
-        	    canvas.getContext('2d').putImageData(imageData, 0, 0);
         	}
         	catch (e){
-        	    console.log("Error")
+        	    console.log(e)
         	}
-            imageDataOld = imageDataCurr;
             window.requestAnimationFrame(snapshot);
         }
         
-        window.requestAnimationFrame(snapshot);
         
         
         // crée un contexteaudio
