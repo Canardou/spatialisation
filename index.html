@@ -23,13 +23,19 @@
         
         var prev_xy = new Float32Array(100*2);
         var curr_xy = new Float32Array(100*2);
-        var point_count = 0;
+        var point_count = 100;
+        var reset_point = 0;
         var point_status = new Uint8Array(100);
         
         window.onload=function(){
             window.requestAnimationFrame(snapshot);
             curr_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
             prev_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
+            for(var k=0; k<100; k++){
+        	    var coords = {x:Math.floor(Math.random()*canvas.width), y:30+Math.floor(Math.random()*(canvas.height-60))}; 
+                curr_xy[k<<1] = coords.x;
+                curr_xy[(k<<1)+1] = coords.y;
+            }
             
         }
             
@@ -38,14 +44,10 @@
         	canvas.width = file.videoWidth;
         	canvas.height = file.videoHeight;
         	
-        	if(point_count < 100){
-        	    var coords = {x:Math.floor(Math.random()*canvas.width), y:30+Math.floor(Math.random()*(canvas.height-60))}; 
-                if(coords.x > 0 & coords.y > 0 & coords.x < canvas.width & coords.y < canvas.height) {
-                    curr_xy[point_count<<1] = coords.x;
-                    curr_xy[(point_count<<1)+1] = coords.y;
-                    point_count++;
-                }
-        	}
+    	    var coords = {x:Math.floor(Math.random()*canvas.width), y:30+Math.floor(Math.random()*(canvas.height-60))}; 
+            curr_xy[reset_point<<1] = coords.x;
+            curr_xy[(reset_point<<1)+1] = coords.y;
+            reset_point = (reset_point+1)%point_count;
         	
         	var ctx = canvas.getContext('2d');
         	ctx.drawImage(file, 0, 0);
@@ -65,22 +67,18 @@
                 curr_xy = _pt_xy;
                 
                 jsfeat.imgproc.grayscale(imageData.data, canvas.width, canvas.height, curr_img_pyr.data[0], code);
-                jsfeat.imgproc.grayscale(imageData.data, canvas.width, canvas.height, gray_img, code);
-                //jsfeat.imgproc.gaussian_blur(gray_img, gray_img, 5, 0);
-                //jsfeat.imgproc.equalize_histogram(gray_img, gray_img);
                 
                 curr_img_pyr.build(curr_img_pyr.data[0], true);
                 jsfeat.optical_flow_lk.track(prev_img_pyr, curr_img_pyr, prev_xy, curr_xy, point_count, win_size, max_iterations, point_status, epsilon, min_eigen);
                 
                 var data_u32 = new Uint32Array(imageData.data.buffer);
                 var alpha = (0xff << 24);
-                var i = gray_img.cols*gray_img.rows, pix = 0;
+                var i = curr_img_pyr.data[0].cols*curr_img_pyr.data[0].rows, pix = 0;
                 while(--i >= 0) {
-                    pix = gray_img.data[i];
+                    pix = curr_img_pyr.data[0].data[i];
                     data_u32[i] = alpha | (pix << 16) | (pix << 8) | pix;
                 }
 
-                ctx.putImageData(imageData, 0, 0);
                 prune_oflow_points(ctx);
                 
         	}
@@ -89,40 +87,30 @@
         	}
             window.requestAnimationFrame(snapshot);
         }
-        
-        function on_canvas_click(e) {
-            var coords = canvas.relMouseCoords(e);
-            if(coords.x > 0 & coords.y > 0 & coords.x < canvas.width & coords.y < canvas.height) {
-                curr_xy[point_count<<1] = coords.x;
-                curr_xy[(point_count<<1)+1] = coords.y;
-                point_count++;
-            }
-        }
-        canvas.addEventListener('click', on_canvas_click, false);
 
-        function draw_circle(ctx, x, y) {
+        function draw_circle(ctx, x, y, speed) {
             ctx.beginPath();
-            ctx.arc(x, y, 4, 0, Math.PI*2, true);
+            ctx.arc(x, y, 2, 0, Math.PI*2, true);
             ctx.closePath();
-            ctx.fillStyle = "rgb(0,255,0)";
+            ctx.fillStyle = "rgb(0,255,"+speed+")";
             ctx.fill();
         }
 
         function prune_oflow_points(ctx) {
             var n = point_count;
-            var i=0,j=0;
-
+            var i=0;
+            var sound = 0;
             for(; i < n; ++i) {
                 if(point_status[i] == 1) {
-                    if(j < i) {
-                        curr_xy[j<<1] = curr_xy[i<<1];
-                        curr_xy[(j<<1)+1] = curr_xy[(i<<1)+1];
+                    var speed = Math.floor(Math.sqrt((prev_xy[i<<1]-curr_xy[i<<1])*(prev_xy[i<<1]-curr_xy[i<<1]) + (prev_xy[(i<<1)+1]-curr_xy[(i<<1)+1])*(prev_xy[(i<<1)+1]-curr_xy[(i<<1)+1])));
+                    speed = Math.min(Math.max(0,speed),255);
+                    if(speed != 0){
+                        sound = Math.max(sound,speed);
                     }
-                    draw_circle(ctx, curr_xy[j<<1], curr_xy[(j<<1)+1]);
-                    ++j;
+                    draw_circle(ctx, curr_xy[i<<1], curr_xy[(i<<1)+1], speed);
                 }
             }
-            point_count = j;
+            gainNode.gain.setValueAtTime(sound/255, contexteAudio.currentTime);
         }
 
         function relMouseCoords(event) {
@@ -154,10 +142,10 @@
         var gainNode = contexteAudio.createGain();
         oscillator.connect(gainNode);
         gainNode.connect(contexteAudio.destination);
-        gainNode.gain.setValueAtTime(0.1, contexteAudio.currentTime);
+        gainNode.gain.setValueAtTime(0, contexteAudio.currentTime);
         
-        //oscillator.start();
-        oscillator.stop(contexteAudio.currentTime + 2);
+        oscillator.start();
+        //oscillator.stop(contexteAudio.currentTime + 0.1);
         </script>
     </body>
 </html>
