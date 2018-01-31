@@ -29,7 +29,6 @@
         var point_speed = new Float32Array(100);
         
         window.onload=function(){
-            window.requestAnimationFrame(snapshot);
             curr_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
             prev_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
             for(var k=0; k<100; k++){
@@ -37,7 +36,7 @@
                 curr_xy[k<<1] = coords.x;
                 curr_xy[(k<<1)+1] = coords.y;
             }
-            
+            setInterval(snapshot, 100);
         }
             
         function snapshot()
@@ -90,7 +89,6 @@
         	catch (e){
         	    console.log(e);
         	}
-            window.requestAnimationFrame(snapshot);
         }
 
         function draw_circle(ctx, x, y, velocity, speed) {
@@ -99,6 +97,7 @@
             ctx.moveTo(x,y);
             ctx.lineTo(x+velocity.x,y+velocity.y);
             ctx.strokeStyle = "rgb(0,255,"+speed+")";
+            ctx.lineWidth=10;
             ctx.stroke();
         }
 
