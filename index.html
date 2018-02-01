@@ -94,21 +94,22 @@
                 //almost same direction
                 
                 for(var j = 0; j < point_count; ++j) {
-                    point_id_followed[i] = -1;
+                    point_id_followed[j] = 255;
                 }
                 
                 for(var j = 0; j < point_count; ++j) {
-                    if(point_status[j] == 1) {
-                        for(var k = 0; k < point_count; ++k) {
-                            if(point_status[k] == 1 && point_id_followed[k] == -1) {
+                    if(point_status[j] == 1 && point_speed[j] > 0) {
+                        for(var k = j; k < point_count; ++k) {
+                            if(point_status[k] == 1 && point_id_followed[k] == 255) {
                                 if( k != j ){
-                                    var distance = Math.sqrt((point[j].x-point[k].x)*(point[j].x-point[k].x) + (point[j].y-point[k].y)*(point[j].y-point[k].y));
-                                    var dot_result = point_direction[k].x * point_direction[j].x + point_direction[k].y * point_direction[j].y;
-                                    var speed_diff = Math.abs(point_speed[k]-point_speed[j]);
-                                    console.log(dot_result)
-                                    if( dot_result > 0.8 && distance < win_size && speed_diff < 1){
-                                        point_id_followed[k] = j
-                                        point_id_followed[j] = j
+                                    if(point_speed[k] > 0 && point_direction[k].x != Infinity && point_direction[k].y != Infinity){
+                                        var distance = Math.sqrt((point[j].x-point[k].x)*(point[j].x-point[k].x) + (point[j].y-point[k].y)*(point[j].y-point[k].y));
+                                        var dot_result = point_direction[k].x * point_direction[j].x + point_direction[k].y * point_direction[j].y;
+                                        var speed_diff = Math.abs(point_speed[k]-point_speed[j]);
+                                        if( dot_result > 0.8 && distance < win_size && speed_diff < 1){
+                                            point_id_followed[k] = j
+                                            point_id_followed[j] = j
+                                        }
                                     }
                                 }
                             }
@@ -157,7 +158,7 @@
                     point_direction[i] = {x:velocity.x/speed, y:velocity.y/speed};
                     speed = Math.min(Math.max(0,speed),255);
                     point_speed[i] = speed;
-                    if(speed > win_size*2)
+                    if(speed > win_size)
                         point_status[i] = 0;
                     else
                         draw_line(ctx, prev_xy[i<<1], prev_xy[(i<<1)+1], point_direction[i], speed, "green");
