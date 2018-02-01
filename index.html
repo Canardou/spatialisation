@@ -26,12 +26,15 @@
         var point_count = 100;
         var reset_point = 0;
         var point_status = new Uint8Array(100);
+        var point_id_followed = new Uint8Array(100);
         var point_speed = new Float32Array(100);
+        var point_direction = [];
+        var point = [];
         
         window.onload=function(){
             curr_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
             prev_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
-            for(var k=0; k<100; k++){
+            for(var k=0; k<point_count; k++){
         	    var coords = {x:Math.floor(Math.random()*canvas.width), y:30+Math.floor(Math.random()*(canvas.height-60))}; 
                 curr_xy[k<<1] = coords.x;
                 curr_xy[(k<<1)+1] = coords.y;
@@ -44,18 +47,19 @@
         	canvas.width = file.videoWidth;
         	canvas.height = file.videoHeight;
         	
-    	    for(var i=0; i<100; i++){
+    	    for(var i=0; i<point_count; i++){
     	        if((point_speed[i] == 0 && reset_point == 0) || point_status[i] == 0){
             	    var coords = {x:Math.floor(Math.random()*canvas.width), y:30+Math.floor(Math.random()*(canvas.height-60))}; 
                     curr_xy[i<<1] = coords.x;
                     curr_xy[(i<<1)+1] = coords.y;
     	        }
     	    }
-        	reset_point = (reset_point+1)%60;
+        	reset_point = (reset_point+1)%5;
         	
         	var ctx = canvas.getContext('2d');
         	ctx.drawImage(file, 0, 0);
         	try{
+            	draw_circle(ctx, mouse.x, mouse.y);
             	var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             	
                 var pixels = imageData.data;
@@ -75,29 +79,68 @@
                 curr_img_pyr.build(curr_img_pyr.data[0], true);
                 jsfeat.optical_flow_lk.track(prev_img_pyr, curr_img_pyr, prev_xy, curr_xy, point_count, win_size, max_iterations, point_status, epsilon, min_eigen);
                 
-                var data_u32 = new Uint32Array(imageData.data.buffer);
+                /*var data_u32 = new Uint32Array(imageData.data.buffer);
                 var alpha = (0xff << 24);
                 var i = curr_img_pyr.data[0].cols*curr_img_pyr.data[0].rows, pix = 0;
                 while(--i >= 0) {
                     pix = curr_img_pyr.data[0].data[i];
                     data_u32[i] = alpha | (pix << 16) | (pix << 8) | pix;
-                }
+                }*/
 
+                //draw points remove too high speed (win size = 20)
                 prune_oflow_points(ctx);
+                
+                //find same direction vectors (distance point to point < winsize)
+                //almost same direction
+                
+                for(var j = 0; j < point_count; ++j) {
+                    point_id_followed[i] = -1;
+                }
+                
+                for(var j = 0; j < point_count; ++j) {
+                    if(point_status[j] == 1) {
+                        for(var k = 0; k < point_count; ++k) {
+                            if(point_status[k] == 1 && point_id_followed[k] == -1) {
+                                if( k != j ){
+                                    var distance = Math.sqrt((point[j].x-point[k].x)*(point[j].x-point[k].x) + (point[j].y-point[k].y)*(point[j].y-point[k].y));
+                                    var dot_result = point_direction[k].x * point_direction[j].x + point_direction[k].y * point_direction[j].y;
+                                    var speed_diff = Math.abs(point_speed[k]-point_speed[j]);
+                                    console.log(dot_result)
+                                    if( dot_result > 0.8 && distance < win_size && speed_diff < 1){
+                                        point_id_followed[k] = j
+                                        point_id_followed[j] = j
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                for(var i=0; i < point_count; ++i) {
+                    if(point_status[i] == 1 && point_id_followed[i] == i) {
+                        draw_line(ctx, point[i].x, point[i].y, point_direction[i], point_speed[i], "red");
+                    }
+                }
                 
         	}
         	catch (e){
         	    console.log(e);
         	}
         }
-
-        function draw_circle(ctx, x, y, velocity, speed) {
+        
+        function draw_circle(ctx, x, y) {
             ctx.beginPath();
+            ctx.arc(x, y, 10, 0, 2 * Math.PI, false);
+            ctx.fillStyle = 'yellow';
+            ctx.fill();
+        }
+
+        function draw_line(ctx, x, y, velocity, speed, color) {
             ctx.beginPath();
             ctx.moveTo(x,y);
-            ctx.lineTo(x+velocity.x,y+velocity.y);
-            ctx.strokeStyle = "rgb(0,255,"+speed+")";
-            ctx.lineWidth=10;
+            ctx.lineTo(x+velocity.x*speed,y+velocity.y*speed);
+            ctx.strokeStyle = color;
+            ctx.lineWidth=5;
             ctx.stroke();
         }
 
@@ -109,34 +152,29 @@
             for(; i < n; ++i) {
                 if(point_status[i] == 1) {
                     var velocity = {x:prev_xy[i<<1]-curr_xy[i<<1], y:prev_xy[(i<<1)+1]-curr_xy[(i<<1)+1]}
+                    point[i] = {x:prev_xy[i<<1], y:prev_xy[(i<<1)+1]}
                     var speed = Math.floor(Math.sqrt(velocity.x*velocity.x + velocity.y*velocity.y));
+                    point_direction[i] = {x:velocity.x/speed, y:velocity.y/speed};
                     speed = Math.min(Math.max(0,speed),255);
                     point_speed[i] = speed;
-                    if(speed > 0){
-                        sound = Math.max(sound,speed);
-                    }
-                    draw_circle(ctx, curr_xy[i<<1], curr_xy[(i<<1)+1], velocity, speed);
+                    if(speed > win_size*2)
+                        point_status[i] = 0;
+                    else
+                        draw_line(ctx, prev_xy[i<<1], prev_xy[(i<<1)+1], point_direction[i], speed, "green");
                 }
             }
-            sound_avg = (sound_avg*9 + sound)/10;
-            gainNode.gain.setValueAtTime(sound_avg/128, contexteAudio.currentTime);
         }
-
-        function relMouseCoords(event) {
-            var totalOffsetX=0,totalOffsetY=0,canvasX=0,canvasY=0;
-            var currentElement = this;
-
-            do {
-                totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
-                totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
-            } while(currentElement = currentElement.offsetParent)
-
-            canvasX = event.pageX - totalOffsetX;
-            canvasY = event.pageY - totalOffsetY;
-
-            return {x:canvasX, y:canvasY};
+        
+        
+        var mouse;
+        function getMousePos(evt) {
+            var rect = canvas.getBoundingClientRect();
+            mouse = {
+              x: evt.clientX - rect.left,
+              y: evt.clientY - rect.top
+            };
         }
-        HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
+        window.addEventListener('mousemove', getMousePos, false);
         
         
         // crée un contexteaudio
