@@ -11,6 +11,7 @@
         /* global jsfeat */
         "use strict";
         var file = document.getElementById('file');
+        //file.playbackRate = 0.5;
         var canvas = document.getElementById('canvas');
         var videoStream = null;
         
@@ -20,14 +21,15 @@
             max_iterations = 30,
             epsilon = 0.01,
             min_eigen = 0.001;
+            
+        var point_count = 50;
         
-        var prev_xy = new Float32Array(100*2);
-        var curr_xy = new Float32Array(100*2);
-        var point_count = 100;
+        var prev_xy = new Float32Array(point_count*2);
+        var curr_xy = new Float32Array(point_count*2);
         var reset_point = 0;
-        var point_status = new Uint8Array(100);
-        var point_id_followed = new Uint8Array(100);
-        var point_speed = new Float32Array(100);
+        var point_status = new Uint8Array(point_count);
+        var point_id_followed = new Uint8Array(point_count);
+        var point_speed = new Float32Array(point_count);
         var point_direction = [];
         var point = [];
         
@@ -54,7 +56,7 @@
                     curr_xy[(i<<1)+1] = coords.y;
     	        }
     	    }
-        	reset_point = (reset_point+1)%5;
+        	reset_point = (reset_point+1)%2;
         	
         	var ctx = canvas.getContext('2d');
         	ctx.drawImage(file, 0, 0);
@@ -98,7 +100,7 @@
                 }
                 
                 for(var j = 0; j < point_count; ++j) {
-                    if(point_status[j] == 1 && point_speed[j] > 0) {
+                    if(point_status[j] == 1 && point_speed[j] > 0 && point_id_followed[j] == 255) {
                         for(var k = j; k < point_count; ++k) {
                             if(point_status[k] == 1 && point_id_followed[k] == 255) {
                                 if( k != j ){
@@ -106,7 +108,7 @@
                                         var distance = Math.sqrt((point[j].x-point[k].x)*(point[j].x-point[k].x) + (point[j].y-point[k].y)*(point[j].y-point[k].y));
                                         var dot_result = point_direction[k].x * point_direction[j].x + point_direction[k].y * point_direction[j].y;
                                         var speed_diff = Math.abs(point_speed[k]-point_speed[j]);
-                                        if( dot_result > 0.8 && distance < win_size && speed_diff < 1){
+                                        if( dot_result > 0.9 && distance < win_size*2 && speed_diff < 5){
                                             point_id_followed[k] = j
                                             point_id_followed[j] = j
                                         }
@@ -122,6 +124,9 @@
                         draw_line(ctx, point[i].x, point[i].y, point_direction[i], point_speed[i], "red");
                     }
                 }
+                
+                //should iterate a second time to merge close found vector and keep them in memory in between frame (kalman ?)
+                
                 
         	}
         	catch (e){
@@ -160,8 +165,8 @@
                     point_speed[i] = speed;
                     if(speed > win_size)
                         point_status[i] = 0;
-                    else
-                        draw_line(ctx, prev_xy[i<<1], prev_xy[(i<<1)+1], point_direction[i], speed, "green");
+                    //else
+                    //    draw_line(ctx, prev_xy[i<<1], prev_xy[(i<<1)+1], point_direction[i], speed, "green");
                 }
             }
         }
