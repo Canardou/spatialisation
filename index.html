@@ -78,7 +78,8 @@
         	var ctx = canvas.getContext('2d');
         	ctx.drawImage(file, 0, 0);
         	try{
-            	draw_circle(ctx, mouse.x, mouse.y);
+        	    if(mouse)
+            	    draw_circle(ctx, mouse.x, mouse.y);
             	var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             	
                 var pixels = imageData.data;
@@ -148,12 +149,16 @@
                 
                 gainNode.gain.setValueAtTime(0.0, contexteAudio.currentTime);
                 
+                var max_speed = 0;
                 for(var i=0; i < point_count; ++i) {
                     if(point_status[i] == 1 && point_id_follower_count[i] > 2) {
                         //draw_line(ctx, point[i].x, point[i].y, point_direction[i], point_speed[i], "red");
-                        panner.setPosition(point[i].x,point[i].y,0);
-                        //panner.setVelocity(point_direction[i].x, point_direction[i].y, 0);//Firefox only
-                        gainNode.gain.setValueAtTime(point_speed[i], contexteAudio.currentTime);
+                        if(max_speed < point_speed[i]){
+                            max_speed = point_speed[i]
+                            panner.setPosition(point[i].x,point[i].y,0);
+                            //panner.setVelocity(point_direction[i].x, point_direction[i].y, 0);//Firefox only
+                            gainNode.gain.setValueAtTime(point_speed[i], contexteAudio.currentTime);
+                        }
                     }
                 }
                 
@@ -168,8 +173,8 @@
         
         function draw_circle(ctx, x, y) {
             ctx.beginPath();
-            ctx.arc(x, y, 10, 0, 2 * Math.PI, false);
-            ctx.fillStyle = 'yellow';
+            ctx.arc(x, y, 12, 0, 2 * Math.PI, false);
+            ctx.fillStyle = 'blue';
             ctx.fill();
         }
 
