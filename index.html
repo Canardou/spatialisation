@@ -3,6 +3,7 @@
         <script type="text/javascript" src="jsfeat.js"></script>
     </head>
     <body>
+        <button id="play_pause" onclick="play_pause()" type="button">Pause</button>
         <video id="file" autoplay loop style="display: none;">
             <source src=IRIT01.webm type=video/webm>
         </video>
@@ -11,6 +12,20 @@
         /* global jsfeat */
         "use strict";
         var file = document.getElementById('file');
+        var btn = document.getElementById('play_pause');
+        
+        
+        function play_pause() {
+          if(file.paused) {
+              file.play();
+              btn.innerHTML = "Pause";
+          }
+          else {
+              file.pause();
+              btn.innerHTML = "Play";
+          }
+        } 
+        
         //file.playbackRate = 0.5;
         var canvas = document.getElementById('canvas');
         var videoStream = null;
@@ -23,6 +38,7 @@
             min_eigen = 0.001;
             
         var point_count = 200;
+        var win_size_sq = win_size*win_size;
         
         var prev_xy = new Float32Array(point_count*2);
         var curr_xy = new Float32Array(point_count*2);
@@ -63,6 +79,9 @@
             
         function snapshot()
         {
+          if(file.paused)
+              return;
+        
         	canvas.width = file.videoWidth;
         	canvas.height = file.videoHeight;
         	
@@ -80,7 +99,7 @@
         	try{
         	    if(mouse)
             	    draw_circle(ctx, mouse.x, mouse.y);
-            	var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             	
                 var pixels = imageData.data;
                  
@@ -119,48 +138,52 @@
                 }
                 
                 for(var j = 0; j < point_count; ++j) {
-                    if(point_status[j] == 1 && point_speed[j] > 0 && point_id_followed[j] == 255) {
-                        for(var k = j; k < point_count; ++k) {
-                            if(point_status[k] == 1 && point_id_followed[k] == 255) {
-                                if( k != j ){
-                                    if(point_speed[k] > 0 && point_direction[k].x != Infinity && point_direction[k].y != Infinity){
-                                        var distance = Math.sqrt((point[j].x-point[k].x)*(point[j].x-point[k].x) + (point[j].y-point[k].y)*(point[j].y-point[k].y));
-                                        var dot_result = point_direction[k].x * point_direction[j].x + point_direction[k].y * point_direction[j].y;
-                                        var speed_diff = Math.abs(point_speed[k]-point_speed[j]);
-                                        if( dot_result > 0.8 && distance < win_size*2 && speed_diff < 5){
-                                            point_id_followed[k] = j
-                                            point_id_followed[j] = j
-                                            point_id_follower_count[j]++;
-                                            point[j].x = (point[j].x+point[k].x)/2;
-                                            point[j].y = (point[j].y+point[k].y)/2;
-                                            point_direction[j].x = (point_direction[j].x+point_direction[k].x)/2;
-                                            point_direction[j].y = (point_direction[j].y+point_direction[k].y)/2;
-                                            var length = Math.floor(Math.sqrt(point_direction[j].x*point_direction[j].x + point_direction[j].y*point_direction[j].y));
-                                            point_direction[j].x /= length;
-                                            point_direction[j].y /= length;
-                                            point_speed[j] = (point_speed[k]+point_speed[j])/2;
-                                        }
-                                    }
-                                }
-                            }
+                    if(!is_valid_point(j))
+                        continue;
+                    
+                    for(var k = j+1; k < point_count; ++k) {
+                        if(!is_valid_point(k))
+                            continue;
+                        
+                        var distance = (point[j].x-point[k].x)*(point[j].x-point[k].x) + (point[j].y-point[k].y)*(point[j].y-point[k].y);
+                        var dot_result = point_direction[k].x * point_direction[j].x + point_direction[k].y * point_direction[j].y;
+                        var speed_diff = Math.abs(point_speed[k]-point_speed[j]);
+                        
+                        if(dot_result > 0.8 && distance < win_size_sq && speed_diff < 5) {
+                            point_id_followed[k] = j
+                            point_id_followed[j] = j
+                            point_id_follower_count[j]++;
+                            point[j].x = (point[j].x+point[k].x)/2;
+                            point[j].y = (point[j].y+point[k].y)/2;
+                            
+                            point_direction[j].x += point_direction[k].x;
+                            point_direction[j].y += point_direction[k].y;
+                            var length = Math.sqrt(point_direction[j].x*point_direction[j].x + point_direction[j].y*point_direction[j].y);
+                            point_direction[j].x /= length;
+                            point_direction[j].y /= length;
+                            
+                            point_speed[j] = (point_speed[k]+point_speed[j])/2;
                         }
                     }
                 }
                 
-                gainNode.gain.setValueAtTime(0.0, contexteAudio.currentTime);
+                // reset at max distance to "stop" listenning 
+                // fix huge noise when starting the video
+                panner.setPosition(0, 0, 10000);
                 
                 var max_speed = 0;
                 for(var i=0; i < point_count; ++i) {
                     if(point_status[i] == 1 && point_id_follower_count[i] > 2) {
-                        //draw_line(ctx, point[i].x, point[i].y, point_direction[i], point_speed[i], "red");
+                        draw_line(ctx, point[i].x, point[i].y, point_direction[i], point_speed[i], "red");
                         if(max_speed < point_speed[i]){
                             max_speed = point_speed[i]
                             panner.setPosition(point[i].x,point[i].y,0);
-                            //panner.setVelocity(point_direction[i].x, point_direction[i].y, 0);//Firefox only
-                            gainNode.gain.setValueAtTime(point_speed[i], contexteAudio.currentTime);
+                            panner.setVelocity(point_direction[i].x, point_direction[i].y, 0);//Firefox only
                         }
                     }
                 }
+                
+                gainNode.gain.setValueAtTime(max_speed, contexteAudio.currentTime);
                 
                 //should iterate a second time to merge close found vector and keep them in memory in between frame (kalman ?)
                 
@@ -169,6 +192,14 @@
         	catch (e){
         	    console.log(e);
         	}
+        }
+        
+        function is_valid_point(j) {
+            return point_status[j] == 1
+                && point_speed[j] > 0
+                && point_id_followed[j] == 255
+                && point_direction[j].x != Infinity
+                && point_direction[j].y != Infinity;
         }
         
         function draw_circle(ctx, x, y) {
@@ -195,15 +226,20 @@
             for(; i < n; ++i) {
                 if(point_status[i] == 1) {
                     var velocity = {x:prev_xy[i<<1]-curr_xy[i<<1], y:prev_xy[(i<<1)+1]-curr_xy[(i<<1)+1]}
+                    
+                    var speed = Math.sqrt(velocity.x*velocity.x + velocity.y*velocity.y);
+                        speed = Math.min(Math.max(0,speed),255);
+                    
                     point[i] = {x:prev_xy[i<<1], y:prev_xy[(i<<1)+1]}
-                    var speed = Math.floor(Math.sqrt(velocity.x*velocity.x + velocity.y*velocity.y));
                     point_direction[i] = {x:velocity.x/speed, y:velocity.y/speed};
-                    speed = Math.min(Math.max(0,speed),255);
                     point_speed[i] = speed;
-                    if(speed > win_size)
-                        point_status[i] = 0;
-                    //else
-                    //    draw_line(ctx, prev_xy[i<<1], prev_xy[(i<<1)+1], point_direction[i], speed, "green");
+                    
+                    // the point_direction should be on ~horizontal (human wont walk in wall)
+                    
+                    point_status[i] = speed < win_size && speed > 2 && Math.abs(point_direction[i].y) < 0.7;
+                        
+                    if(point_status[i])
+                        draw_line(ctx, point[i].x, point[i].y, point_direction[i], speed, "green");
                 }
             }
         }
@@ -218,7 +254,6 @@
             };
         }
         window.addEventListener('mousemove', getMousePos, false);
-        
         
         // crée un contexteaudio
         var contexteAudio = new (window.AudioContext || window.webkitAudioContext)();
