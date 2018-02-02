@@ -22,13 +22,14 @@
             epsilon = 0.01,
             min_eigen = 0.001;
             
-        var point_count = 50;
+        var point_count = 200;
         
         var prev_xy = new Float32Array(point_count*2);
         var curr_xy = new Float32Array(point_count*2);
         var reset_point = 0;
         var point_status = new Uint8Array(point_count);
         var point_id_followed = new Uint8Array(point_count);
+        var point_id_follower_count = new Uint8Array(point_count);
         var point_speed = new Float32Array(point_count);
         var point_direction = [];
         var point = [];
@@ -42,6 +43,22 @@
                 curr_xy[(k<<1)+1] = coords.y;
             }
             setInterval(snapshot, 100);
+            
+            if(listener.forwardX) {
+              listener.forwardX.value = 0;
+              listener.forwardY.value = 0;
+              listener.forwardZ.value = -1;
+              listener.upX.value = 0;
+              listener.upY.value = 1;
+              listener.upZ.value = 0;
+            } else {
+              listener.setOrientation(0,0,-1,0,1,0);
+            }
+            listener.positionX.value = canvas.width/2;
+            listener.positionY.value = canvas.height/2;
+            listener.positionZ.value = 50;
+            
+            panner.setPosition(0,0,0);
         }
             
         function snapshot()
@@ -97,6 +114,7 @@
                 
                 for(var j = 0; j < point_count; ++j) {
                     point_id_followed[j] = 255;
+                    point_id_follower_count[j] = 0;
                 }
                 
                 for(var j = 0; j < point_count; ++j) {
@@ -108,9 +126,18 @@
                                         var distance = Math.sqrt((point[j].x-point[k].x)*(point[j].x-point[k].x) + (point[j].y-point[k].y)*(point[j].y-point[k].y));
                                         var dot_result = point_direction[k].x * point_direction[j].x + point_direction[k].y * point_direction[j].y;
                                         var speed_diff = Math.abs(point_speed[k]-point_speed[j]);
-                                        if( dot_result > 0.9 && distance < win_size*2 && speed_diff < 5){
+                                        if( dot_result > 0.8 && distance < win_size*2 && speed_diff < 5){
                                             point_id_followed[k] = j
                                             point_id_followed[j] = j
+                                            point_id_follower_count[j]++;
+                                            point[j].x = (point[j].x+point[k].x)/2;
+                                            point[j].y = (point[j].y+point[k].y)/2;
+                                            point_direction[j].x = (point_direction[j].x+point_direction[k].x)/2;
+                                            point_direction[j].y = (point_direction[j].y+point_direction[k].y)/2;
+                                            var length = Math.floor(Math.sqrt(point_direction[j].x*point_direction[j].x + point_direction[j].y*point_direction[j].y));
+                                            point_direction[j].x /= length;
+                                            point_direction[j].y /= length;
+                                            point_speed[j] = (point_speed[k]+point_speed[j])/2;
                                         }
                                     }
                                 }
@@ -119,9 +146,14 @@
                     }
                 }
                 
+                gainNode.gain.setValueAtTime(0.0, contexteAudio.currentTime);
+                
                 for(var i=0; i < point_count; ++i) {
-                    if(point_status[i] == 1 && point_id_followed[i] == i) {
-                        draw_line(ctx, point[i].x, point[i].y, point_direction[i], point_speed[i], "red");
+                    if(point_status[i] == 1 && point_id_follower_count[i] > 2) {
+                        //draw_line(ctx, point[i].x, point[i].y, point_direction[i], point_speed[i], "red");
+                        panner.setPosition(point[i].x,point[i].y,0);
+                        //panner.setVelocity(point_direction[i].x, point_direction[i].y, 0);//Firefox only
+                        gainNode.gain.setValueAtTime(point_speed[i], contexteAudio.currentTime);
                     }
                 }
                 
@@ -186,6 +218,49 @@
         // crée un contexteaudio
         var contexteAudio = new (window.AudioContext || window.webkitAudioContext)();
         
+        var panner = contexteAudio.createPanner();
+        panner.panningModel = 'HRTF';
+        panner.distanceModel = 'inverse';
+        panner.refDistance = 1;
+        panner.maxDistance = 10000;
+        panner.rolloffFactor = 1;
+        panner.coneInnerAngle = 360;
+        panner.coneOuterAngle = 0;
+        panner.coneOuterGain = 0;
+        
+        var listener = contexteAudio.listener;
+        
+        var source;
+        function getData() {
+            source = contexteAudio.createBufferSource();
+            var request = new XMLHttpRequest();
+            
+            request.open('GET', '7274.wav', true);
+            
+            request.responseType = 'arraybuffer';
+            
+            request.onload = function() {
+            var audioData = request.response;
+            
+            contexteAudio.decodeAudioData(audioData, function(buffer) {
+                var myBuffer = buffer;
+                source.buffer = myBuffer;
+                source.connect(gainNode);
+                source.loop = true;
+              },
+            
+              function(e){"Error with decoding audio data" + e.err});
+            
+            }
+            
+            request.send();
+        }
+            
+        // wire up buttons to stop and play audio, and range slider control
+        getData();
+        source.start(0);
+
+        
         // create Oscillator node
         var oscillator = contexteAudio.createOscillator();
         oscillator.type = 'square';
@@ -193,9 +268,9 @@
         oscillator.detune.setValueAtTime(0.2, 0);
 
         var gainNode = contexteAudio.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(contexteAudio.destination);
-        gainNode.gain.setValueAtTime(0, contexteAudio.currentTime);
+        gainNode.connect(panner);
+        panner.connect(contexteAudio.destination);
+        gainNode.gain.setValueAtTime(5.0, contexteAudio.currentTime);
         
         oscillator.start();
         //oscillator.stop(contexteAudio.currentTime + 0.1);
