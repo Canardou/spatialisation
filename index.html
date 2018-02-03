@@ -8,9 +8,15 @@
             <source src=IRIT01.webm type=video/webm>
         </video>
         <p><canvas id="canvas"></canvas></p>
+        <input type="checkbox" autocomplete=off onchange="setDebug(this.checked)" id="debug" value="debug"><label for="debug">Debug</label>
+        <div id="log"></div>
         <script type="text/javascript">
         /* global jsfeat */
         "use strict";
+        var debug = false;
+        function setDebug(bool){
+            debug = bool;
+        }
         var file = document.getElementById('file');
         var btn = document.getElementById('play_pause');
         
@@ -32,23 +38,24 @@
         
         var curr_img_pyr = new jsfeat.pyramid_t(3);
         var prev_img_pyr = new jsfeat.pyramid_t(3);
-        var win_size = 20,
+        var win_size = 25,
             max_iterations = 30,
             epsilon = 0.01,
             min_eigen = 0.001;
             
-        var point_count = 200;
+        var point_count = 100;
         var win_size_sq = win_size*win_size;
         
         var prev_xy = new Float32Array(point_count*2);
         var curr_xy = new Float32Array(point_count*2);
-        var reset_point = 0;
         var point_status = new Uint8Array(point_count);
         var point_id_followed = new Uint8Array(point_count);
         var point_id_follower_count = new Uint8Array(point_count);
         var point_speed = new Float32Array(point_count);
         var point_direction = [];
         var point = [];
+        var objects = [];
+        var reset_point = 0;
         
         window.onload=function(){
             curr_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
@@ -75,6 +82,7 @@
             listener.positionZ.value = 50;
             
             panner.setPosition(0,0,0);
+            gainNode.gain.setValueAtTime(5.0, contexteAudio.currentTime);
         }
             
         function snapshot()
@@ -86,13 +94,13 @@
         	canvas.height = file.videoHeight;
         	
     	    for(var i=0; i<point_count; i++){
-    	        if((point_speed[i] == 0 && reset_point == 0) || point_status[i] == 0){
+    	        if(point_speed[i] < 0.1 || point_status[i] == 0 || reset_point == i){
             	    var coords = {x:Math.floor(Math.random()*canvas.width), y:30+Math.floor(Math.random()*(canvas.height-60))}; 
                     curr_xy[i<<1] = coords.x;
                     curr_xy[(i<<1)+1] = coords.y;
     	        }
     	    }
-        	reset_point = (reset_point+1)%2;
+    	    reset_point = (reset_point+1)%point_count;
         	
         	var ctx = canvas.getContext('2d');
         	ctx.drawImage(file, 0, 0);
@@ -137,6 +145,8 @@
                     point_id_follower_count[j] = 0;
                 }
                 
+                objects = [];
+                
                 for(var j = 0; j < point_count; ++j) {
                     if(!is_valid_point(j))
                         continue;
@@ -149,19 +159,27 @@
                         var dot_result = point_direction[k].x * point_direction[j].x + point_direction[k].y * point_direction[j].y;
                         var speed_diff = Math.abs(point_speed[k]-point_speed[j]);
                         
-                        if(dot_result > 0.8 && distance < win_size_sq && speed_diff < 5) {
+                        if( dot_result > 0.9 && distance < win_size_sq*8 && speed_diff < 2){
+                            if(objects[j] == undefined){
+                                objects[j] = {id:j, left:point[j].x, 
+                                                    top:point[j].y,
+                                                    right:point[j].x,
+                                                    bottom:point[j].y};
+                            }
+                            objects[j] = {id:objects[j].id, left:Math.min(objects[j].left,point[k].x), 
+                                                    top:Math.min(objects[j].top,point[k].y),
+                                                    right:Math.max(objects[j].right,point[k].x),
+                                                    bottom:Math.max(objects[j].bottom,point[k].y)};
                             point_id_followed[k] = j
                             point_id_followed[j] = j
                             point_id_follower_count[j]++;
                             point[j].x = (point[j].x+point[k].x)/2;
                             point[j].y = (point[j].y+point[k].y)/2;
-                            
-                            point_direction[j].x += point_direction[k].x;
-                            point_direction[j].y += point_direction[k].y;
-                            var length = Math.sqrt(point_direction[j].x*point_direction[j].x + point_direction[j].y*point_direction[j].y);
+                            point_direction[j].x = (point_direction[j].x+point_direction[k].x)/2;
+                            point_direction[j].y = (point_direction[j].y+point_direction[k].y)/2;
+                            var length = Math.floor(Math.sqrt(point_direction[j].x*point_direction[j].x + point_direction[j].y*point_direction[j].y));
                             point_direction[j].x /= length;
                             point_direction[j].y /= length;
-                            
                             point_speed[j] = (point_speed[k]+point_speed[j])/2;
                         }
                     }
@@ -169,16 +187,31 @@
                 
                 // reset at max distance to "stop" listenning 
                 // fix huge noise when starting the video
-                panner.setPosition(0, 0, 10000);
+
+                document.getElementById("log").innerHTML = "";
                 
                 var max_speed = 0;
                 for(var i=0; i < point_count; ++i) {
-                    if(point_status[i] == 1 && point_id_follower_count[i] > 2) {
-                        draw_line(ctx, point[i].x, point[i].y, point_direction[i], point_speed[i], "red");
+                    if(point_status[i] == 1 && point_id_follower_count[i] > 3) {
+                        if(debug)
+                            draw_line(ctx, point[i].x, point[i].y, point_direction[i], point_speed[i], "red");
                         if(max_speed < point_speed[i]){
                             max_speed = point_speed[i]
                             panner.setPosition(point[i].x,point[i].y,0);
-                            panner.setVelocity(point_direction[i].x, point_direction[i].y, 0);//Firefox only
+                            //panner.setVelocity(point_direction[i].x, point_direction[i].y, 0);//Firefox only
+                            gainNode.gain.setValueAtTime(point_speed[i], contexteAudio.currentTime);
+                            if(debug){
+                                ctx.beginPath();
+                                ctx.lineWidth="2";
+                                ctx.strokeStyle="blue";
+                                ctx.rect(objects[i].left,objects[i].top,objects[i].right-objects[i].left,objects[i].bottom-objects[i].top);
+                                ctx.stroke();
+                                ctx.font = "15px Comic Sans MS";
+                                ctx.fillStyle = "blue";
+                                ctx.textAlign = "center";
+                                ctx.fillText("id:" + objects[i].id, objects[i].left, objects[i].top - 15); 
+                            }
+                            document.getElementById("log").innerHTML += "<div>Objects "+objects[i].id+"<br>Speed : "+Math.floor(point_speed[i])+"<br>x:"+Math.floor(objects[i].left)+", y:"+Math.floor(objects[i].top)+", w:"+Math.floor(objects[i].right-objects[i].left)+", h:"+Math.floor(objects[i].bottom-objects[i].top)+"</div>";
                         }
                     }
                 }
@@ -205,14 +238,15 @@
         function draw_circle(ctx, x, y) {
             ctx.beginPath();
             ctx.arc(x, y, 12, 0, 2 * Math.PI, false);
-            ctx.fillStyle = 'blue';
+            ctx.fillStyle = 'black';
             ctx.fill();
         }
 
         function draw_line(ctx, x, y, velocity, speed, color) {
+            ctx.lineCap = 'round';
             ctx.beginPath();
             ctx.moveTo(x,y);
-            ctx.lineTo(x+velocity.x*speed,y+velocity.y*speed);
+            ctx.lineTo(x+1+velocity.x*speed,y+1+velocity.y*speed);
             ctx.strokeStyle = color;
             ctx.lineWidth=5;
             ctx.stroke();
@@ -227,19 +261,17 @@
                 if(point_status[i] == 1) {
                     var velocity = {x:prev_xy[i<<1]-curr_xy[i<<1], y:prev_xy[(i<<1)+1]-curr_xy[(i<<1)+1]}
                     
-                    var speed = Math.sqrt(velocity.x*velocity.x + velocity.y*velocity.y);
+                    var speed = Math.floor(Math.sqrt(velocity.x*velocity.x + velocity.y*velocity.y));
                         speed = Math.min(Math.max(0,speed),255);
                     
                     point[i] = {x:prev_xy[i<<1], y:prev_xy[(i<<1)+1]}
                     point_direction[i] = {x:velocity.x/speed, y:velocity.y/speed};
                     point_speed[i] = speed;
-                    
-                    // the point_direction should be on ~horizontal (human wont walk in wall)
-                    
-                    point_status[i] = speed < win_size && speed > 2 && Math.abs(point_direction[i].y) < 0.7;
-                        
-                    if(point_status[i])
-                        draw_line(ctx, point[i].x, point[i].y, point_direction[i], speed, "green");
+
+                    if(speed > win_size)
+                        point_status[i] = 0;
+                    else if (debug)
+                        draw_line(ctx, prev_xy[i<<1], prev_xy[(i<<1)+1], point_direction[i], speed, "green");
                 }
             }
         }
@@ -310,7 +342,7 @@
         var gainNode = contexteAudio.createGain();
         gainNode.connect(panner);
         panner.connect(contexteAudio.destination);
-        gainNode.gain.setValueAtTime(5.0, contexteAudio.currentTime);
+        gainNode.gain.setValueAtTime(0.0, contexteAudio.currentTime);
         
         oscillator.start();
         //oscillator.stop(contexteAudio.currentTime + 0.1);
