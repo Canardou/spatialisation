@@ -59,7 +59,6 @@ function update_frame() {
 }
 
 function update_sound_from_objects(ctx) {
-    var max_speed = 0;
     sources[0].gain.gain.setValueAtTime(0, contexteAudio.currentTime);
     sources[1].gain.gain.setValueAtTime(0, contexteAudio.currentTime);
     
@@ -81,14 +80,12 @@ function update_sound_from_objects(ctx) {
             
             if(size<3000)
                 src_id = 1;
-            else if(max_speed < point_speed[i])
-                src_id = 0;
             else
-                continue;
+                src_id = 0;
                 
             sources[src_id].panner.setPosition(point[id].x,point[id].y,0);
-            if(navigator.userAgent.indexOf("Firefox"))
-                sources[src_id].panner.setVelocity(point_direction[id].x, point_direction[id].y, 0);
+            //if(navigator.userAgent.indexOf("Firefox"))
+            //    sources[src_id].panner.setVelocity(point_direction[id].x, point_direction[id].y, 0);
             sources[src_id].gain.gain.setValueAtTime(point_speed[id], contexteAudio.currentTime);
             draw_object(ctx, objects[i], src_color[src_id], "2", "15px");
         }

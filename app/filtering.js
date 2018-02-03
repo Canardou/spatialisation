@@ -6,12 +6,14 @@ function prune_oflow_points(ctx) {
         if(point_status[i] == 1) {
             var velocity = {x:prev_xy[i<<1]-curr_xy[i<<1], y:prev_xy[(i<<1)+1]-curr_xy[(i<<1)+1]}
             
-            var speed = Math.floor(vector_length(velocity));
-                speed = Math.min(Math.max(0,speed),255);
+            var speed = vector_length(velocity);
             
-            point[i] = {x:prev_xy[i<<1], y:prev_xy[(i<<1)+1]}
-            point_direction[i] = {x:velocity.x/speed, y:velocity.y/speed};
             point_speed[i] = speed;
+            point[i] = {x:prev_xy[i<<1], y:prev_xy[(i<<1)+1]}
+            point_direction[i] = {
+                x:velocity.x/Math.floor(speed),
+                y:velocity.y/Math.floor(speed)
+            };
 
             if(speed > win_size)
                 point_status[i] = 0;
@@ -65,7 +67,7 @@ function build_object_and_merge_vectors () {
                 point_direction[j].x = (point_direction[j].x+point_direction[k].x)/2;
                 point_direction[j].y = (point_direction[j].y+point_direction[k].y)/2;
                 
-                var length = Math.floor(vector_length(point_direction[j]));
+                var length = vector_length(point_direction[j]);
                 point_direction[j].x /= length;
                 point_direction[j].y /= length;
                 point_speed[j] = (point_speed[k]+point_speed[j])/2;
