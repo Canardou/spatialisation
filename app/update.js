@@ -66,6 +66,8 @@ function update_sound_from_objects(ctx) {
     log.innerHTML = "";
     draw_log_objects(objects, point_speed);
     
+    var src_color = ["red", "yellow"];
+    
     for(var i=0; i < objects.length; ++i) {
         var id = objects[i].id;
         if(point_status[id] == 1 && point_id_follower_count[id] > 3) {
@@ -75,18 +77,20 @@ function update_sound_from_objects(ctx) {
             var height =  objects[i].bottom-objects[i].top;
             var size = width * height;
             
-            if(size<3000) {
-                sources[1].panner.setPosition(point[id].x,point[id].y,0);
-                sources[1].gain.gain.setValueAtTime(5.0, contexteAudio.currentTime);
-                draw_object(ctx, objects[i], "yellow", "2", "15px");
-            }
-            else if(max_speed < point_speed[i]){
-                max_speed = point_speed[id]
-                sources[0].panner.setPosition(point[id].x,point[id].y,0);
-                //sources[0].panner.setVelocity(point_direction[id].x, point_direction[id].y, 0);//Firefox only
-                sources[0].gain.gain.setValueAtTime(point_speed[id], contexteAudio.currentTime);
-                draw_object(ctx, objects[i], "red", "2", "15px");
-            }
+            var src_id = -1;
+            
+            if(size<3000)
+                src_id = 1;
+            else if(max_speed < point_speed[i])
+                src_id = 0;
+            else
+                continue;
+                
+            sources[src_id].panner.setPosition(point[id].x,point[id].y,0);
+            if(navigator.userAgent.indexOf("Firefox"))
+                sources[src_id].panner.setVelocity(point_direction[id].x, point_direction[id].y, 0);
+            sources[src_id].gain.gain.setValueAtTime(point_speed[id], contexteAudio.currentTime);
+            draw_object(ctx, objects[i], src_color[src_id], "2", "15px");
         }
     }
 }
