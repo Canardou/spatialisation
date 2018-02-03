@@ -43,7 +43,7 @@
             epsilon = 0.01,
             min_eigen = 0.001;
             
-        var point_count = 100;
+        var point_count = 200;
         var win_size_sq = win_size*win_size;
         
         var prev_xy = new Float32Array(point_count*2);
@@ -106,6 +106,8 @@
         	try{
         	    if(mouse)
             	    draw_circle(ctx, mouse.x, mouse.y);
+            	    
+            	var t0 = performance.now();
                 var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             	
                 var pixels = imageData.data;
@@ -123,8 +125,9 @@
                 jsfeat.imgproc.grayscale(imageData.data, canvas.width, canvas.height, curr_img_pyr.data[0], code);
                 
                 curr_img_pyr.build(curr_img_pyr.data[0], true);
+                var t1 = performance.now();
                 jsfeat.optical_flow_lk.track(prev_img_pyr, curr_img_pyr, prev_xy, curr_xy, point_count, win_size, max_iterations, point_status, epsilon, min_eigen);
-                
+                var t2 = performance.now();
                 /*var data_u32 = new Uint32Array(imageData.data.buffer);
                 var alpha = (0xff << 24);
                 var i = curr_img_pyr.data[0].cols*curr_img_pyr.data[0].rows, pix = 0;
@@ -135,7 +138,7 @@
 
                 //draw points remove too high speed (win size = 20)
                 prune_oflow_points(ctx);
-                
+                var t3 = performance.now();
                 //find same direction vectors (distance point to point < winsize)
                 //almost same direction
                 
@@ -146,7 +149,7 @@
                 
                 objects = [];
                 
-                for(var j = 0; j < point_count; ++j) {
+                for(var j = 0; j < point_count/2; ++j) {
                     if(!is_valid_point(j))
                         continue;
                     
@@ -184,6 +187,7 @@
                     }
                 }
                 
+                var t4 = performance.now();
                 // reset at max distance to "stop" listenning 
                 // fix huge noise when starting the video
 
@@ -210,13 +214,21 @@
                                 ctx.textAlign = "center";
                                 ctx.fillText("id:" + objects[i].id, objects[i].left, objects[i].top - 15); 
                             }
-                            document.getElementById("log").innerHTML += "<div>Objects "+objects[i].id+"<br>Speed : "+Math.floor(point_speed[i])+"<br>x:"+Math.floor(objects[i].left)+", y:"+Math.floor(objects[i].top)+", w:"+Math.floor(objects[i].right-objects[i].left)+", h:"+Math.floor(objects[i].bottom-objects[i].top)+"</div>";
+                            if(debug)
+                                document.getElementById("log").innerHTML += "<div>Objects "+objects[i].id+"<br>Speed : "+Math.floor(point_speed[i])+"<br>x:"+Math.floor(objects[i].left)+", y:"+Math.floor(objects[i].top)+", w:"+Math.floor(objects[i].right-objects[i].left)+", h:"+Math.floor(objects[i].bottom-objects[i].top)+"</div>";
                         }
                     }
                 }
                 
                 gainNode.gain.setValueAtTime(max_speed, contexteAudio.currentTime);
                 
+                var t5 = performance.now();
+                if(debug)
+                    document.getElementById("log").innerHTML += "<div style='position:absolute;display:block;top:20px;left:400px'><br>Preparation donnees : " + Math.floor(t1-t0)
+                                                            +"<br>Lukas kanade : " + Math.floor(t2-t1)
+                                                            +"<br>Tri des points : " + Math.floor(t3-t2)
+                                                            +"<br>Rassemblement des points : " + Math.floor(t4-t3)
+                                                            +"<br>Affichage et son : " + Math.floor(t5-t4) + "</div>";
                 //should iterate a second time to merge close found vector and keep them in memory in between frame (kalman ?)
                 
                 
