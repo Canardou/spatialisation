@@ -193,6 +193,19 @@
                 
                 var t4 = performance.now();
                 //If inside of another object, remove
+                for(var i=0; i < objects.length; ++i) {
+                    if(debug){
+                        ctx.beginPath();
+                        ctx.lineWidth="1";
+                        ctx.strokeStyle="purple";
+                        ctx.rect(objects[i].left,objects[i].top,width,height);
+                        ctx.stroke();
+                        ctx.font = "8px Comic Sans MS";
+                        ctx.fillStyle = "purple";
+                        ctx.textAlign = "center";
+                        ctx.fillText(objects[i].id, objects[i].left, objects[i].top); 
+                    }
+                }
                 var tmp_win_size = win_size;
                 for(var k=0; k<5; ++k){
                     for(var i=0; i < objects.length/2; ++i) {
@@ -231,26 +244,37 @@
                         if(size<3000) {
                             wakaPanner.setPosition(point[id].x,point[id].y,0);
                             wakaNode.gain.setValueAtTime(5.0, contexteAudio.currentTime);
+                            if(debug){
+                                ctx.beginPath();
+                                ctx.lineWidth="2";
+                                ctx.strokeStyle="yellow";
+                                ctx.rect(objects[i].left,objects[i].top,width,height);
+                                ctx.stroke();
+                                ctx.font = "15px Comic Sans MS";
+                                ctx.fillStyle = "yellow";
+                                ctx.textAlign = "center";
+                                ctx.fillText("id:" + objects[i].id, objects[i].left, objects[i].top - 15); 
+                            }
                         }
                         else if(max_speed < point_speed[i]){
                             max_speed = point_speed[id]
                             panner.setPosition(point[id].x,point[id].y,0);
                             //panner.setVelocity(point_direction[id].x, point_direction[id].y, 0);//Firefox only
                             gainNode.gain.setValueAtTime(point_speed[id], contexteAudio.currentTime);
+                            if(debug){
+                                ctx.beginPath();
+                                ctx.lineWidth="2";
+                                ctx.strokeStyle="red";
+                                ctx.rect(objects[i].left,objects[i].top,width,height);
+                                ctx.stroke();
+                                ctx.font = "15px Comic Sans MS";
+                                ctx.fillStyle = "red";
+                                ctx.textAlign = "center";
+                                ctx.fillText("id:" + objects[i].id, objects[i].left, objects[i].top - 15); 
+                            }
                         }
                         if(debug)
                                 document.getElementById("log").innerHTML += "<div>Object id : "+id+"<br>Speed : "+Math.floor(point_speed[i])+"<br>x:"+Math.floor(objects[i].left)+", y:"+Math.floor(objects[i].top)+", w:"+Math.floor(objects[i].right-objects[i].left)+", h:"+Math.floor(objects[i].bottom-objects[i].top)+"</div>";
-                        if(debug){
-                            ctx.beginPath();
-                            ctx.lineWidth="2";
-                            ctx.strokeStyle="blue";
-                            ctx.rect(objects[i].left,objects[i].top,width,height);
-                            ctx.stroke();
-                            ctx.font = "15px Comic Sans MS";
-                            ctx.fillStyle = "blue";
-                            ctx.textAlign = "center";
-                            ctx.fillText("id:" + objects[i].id, objects[i].left, objects[i].top - 15); 
-                        }
                     }
                 }
                 
