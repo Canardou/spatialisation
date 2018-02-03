@@ -48,32 +48,43 @@ function draw_object(ctx, object, color, thickness, font) {
     ctx.fillText("id:" + object.id, object.left, object.top - 15); 
 }
 
-function draw_log_object(id, object, speed) {
+function draw_log_objects(objects, speeds) {
     if(!debug)
         return;
         
-    log.innerHTML +=
-        "<div>"
-        + "Object id : " + id + "<br>"
-        + "Speed : " + Math.floor(speed)
-        + "<br>"
-        +     "x:" + Math.floor(object.left)
-        +   ", y:" + Math.floor(object.top)
-        +   ", w:" + Math.floor(object.right-object.left)
-        +   ", h:" + Math.floor(object.bottom-object.top)
-      + "</div>";
+    function add_row(object, speed) {
+        return "<tr><td>" + object.id + "</td><td>" + speed.toFixed(3) + "</td><td>" +
+                25
+              + "</td></tr>";
+    }
+        
+    var table = 
+          "<table style='position:absolute;display:block;top:150px;left:400px;width:300px'>"
+        + "<tr><td width='140px'>Object id</td><td width='120px'>Speed</td><td width='150px'>Coords</td></tr>";
+        
+    for(var i=0; i<objects.length; ++i)
+        table += add_row(objects[i], speeds[i]);
+    
+    table += "</table>";
+    
+    log.innerHTML += table;
 }
 
 function draw_log_time(t0, t1, t2, t3, t4, t5) {
     if(!debug)
         return;
         
+    function add_row(title, time) {
+        return "<tr><td>" + title + "</td><td style='text-align: right;'>"
+             + time.toFixed(3) + "ms</td></tr>"
+    }
+        
     log.innerHTML +=
-        "<div style='position:absolute;display:block;top:20px;left:400px'>"
-      + "<br>Preparation donnees : "      + Math.floor(t1-t0)
-      + "<br>Lukas kanade : "             + Math.floor(t2-t1)
-      + "<br>Tri des points : "           + Math.floor(t3-t2)
-      + "<br>Rassemblement des points : " + Math.floor(t4-t3)
-      + "<br>Affichage et son : "         + Math.floor(t5-t4)
-      + "</div>";
+       "<table style='position:absolute;display:block;top:10px;left:400px'>"
+      + add_row("Preparation donnees",      t1-t0)
+      + add_row("Lukas kanade",             t2-t1)
+      + add_row("Tri des points",           t3-t2)
+      + add_row("Rassemblement des points", t4-t3)
+      + add_row("Affichage et son",         t5-t4)
+      + "</table>";
 }

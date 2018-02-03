@@ -59,11 +59,12 @@ function update_frame() {
 }
 
 function update_sound_from_objects(ctx) {
-    log.innerHTML = "";
-    
     var max_speed = 0;
     sources[0].gain.gain.setValueAtTime(0, contexteAudio.currentTime);
     sources[1].gain.gain.setValueAtTime(0, contexteAudio.currentTime);
+    
+    log.innerHTML = "";
+    draw_log_objects(objects, point_speed);
     
     for(var i=0; i < objects.length; ++i) {
         var id = objects[i].id;
@@ -86,7 +87,6 @@ function update_sound_from_objects(ctx) {
                 sources[0].gain.gain.setValueAtTime(point_speed[id], contexteAudio.currentTime);
                 draw_object(ctx, objects[i], "red", "2", "15px");
             }
-            draw_log_object(id, objects[i], point_speed[i])
         }
     }
 }
