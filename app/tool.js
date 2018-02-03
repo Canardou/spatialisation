@@ -18,9 +18,10 @@ function vector_length(j) {
 function is_valid_point(j) {
     return point_status[j] == 1
         && point_speed[j] > 2
-        && point_id_followed[j] == 255
-        && point_direction[j].x != Infinity
-        && point_direction[j].y != Infinity;
+        && point_id_followed[j] == 255;
+    // should be fixed with speed
+    //  && point_direction[j].x != Infinity
+    //  && point_direction[j].y != Infinity;
 }
 
 function is_rect_inside(current, other, eps) {

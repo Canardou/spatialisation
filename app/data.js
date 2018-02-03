@@ -49,7 +49,7 @@ function prepare_image(ctx) {
 
 function reset_static_point() {
   for(var i=0; i<point_count; i++){
-      if(point_speed[i] < 0.1 || point_status[i] == 0){
+      if(point_speed[i] < 0.1 || point_status[i] == 0) {
           var coords = random_position(canvas); 
           curr_xy[i<<1] = coords.x;
           curr_xy[(i<<1)+1] = coords.y;

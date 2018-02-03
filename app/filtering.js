@@ -11,11 +11,11 @@ function prune_oflow_points(ctx) {
             point_speed[i] = speed;
             point[i] = {x:prev_xy[i<<1], y:prev_xy[(i<<1)+1]}
             point_direction[i] = {
-                x:velocity.x/Math.floor(speed),
-                y:velocity.y/Math.floor(speed)
+                x:velocity.x/speed,
+                y:velocity.y/speed
             };
 
-            if(speed > win_size)
+            if(speed > win_size || speed < 1)
                 point_status[i] = 0;
             else
                 draw_line(ctx, prev_xy[i<<1], prev_xy[(i<<1)+1], point_direction[i], speed, "green");
