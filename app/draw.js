@@ -1,4 +1,7 @@
 function draw_circle(ctx, x, y) {
+    if(!debug)
+        return;
+        
     ctx.beginPath();
     ctx.arc(x, y, 12, 0, 2 * Math.PI, false);
     ctx.fillStyle = 'black';
@@ -6,6 +9,9 @@ function draw_circle(ctx, x, y) {
 }
 
 function draw_line(ctx, x, y, velocity, speed, color) {
+    if(!debug)
+        return;
+        
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(x,y);
@@ -15,7 +21,18 @@ function draw_line(ctx, x, y, velocity, speed, color) {
     ctx.stroke();
 }
 
-function draw_object_debug(ctx, object, color, thickness, font) {
+function draw_objects(ctx, objects) {
+    if(!debug)
+        return;
+
+    for(var i=0; i < objects.length; ++i)
+        draw_object(ctx, objects[i], "purple", "1", "8px");
+}
+
+function draw_object(ctx, object, color, thickness, font) {
+    if(!debug)
+        return;
+        
     var width = object.right-object.left;
     var height = object.bottom-object.top;
     var size = width * height;
@@ -31,8 +48,11 @@ function draw_object_debug(ctx, object, color, thickness, font) {
     ctx.fillText("id:" + object.id, object.left, object.top - 15); 
 }
 
-function draw_debug_log_object(id, object, speed) {
-    document.getElementById("log").innerHTML +=
+function draw_log_object(id, object, speed) {
+    if(!debug)
+        return;
+        
+    log.innerHTML +=
         "<div>"
         + "Object id : " + id + "<br>"
         + "Speed : " + Math.floor(speed)
@@ -44,8 +64,11 @@ function draw_debug_log_object(id, object, speed) {
       + "</div>";
 }
 
-function draw_debug_log_time(t0, t1, t2, t3, t4, t5) {
-    document.getElementById("log").innerHTML +=
+function draw_log_time(t0, t1, t2, t3, t4, t5) {
+    if(!debug)
+        return;
+        
+    log.innerHTML +=
         "<div style='position:absolute;display:block;top:20px;left:400px'>"
       + "<br>Preparation donnees : "      + Math.floor(t1-t0)
       + "<br>Lukas kanade : "             + Math.floor(t2-t1)

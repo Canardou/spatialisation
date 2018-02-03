@@ -1,4 +1,6 @@
+var log = document.getElementById('log');
 var file = document.getElementById('file');
+var canvas = document.getElementById('canvas');
 var btn = document.getElementById('play_pause');
 
 var debug = false;

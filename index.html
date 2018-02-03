@@ -14,11 +14,14 @@
         <label for="debug">Debug</label>
         <div id="log"></div>
         
+        <script type="text/javascript" src="app/data.js"></script>
         <script type="text/javascript" src="app/ui.js"></script>
         <script type="text/javascript" src="app/audio.js"></script>
         <script type="text/javascript" src="app/draw.js"></script>
         <script type="text/javascript" src="app/tool.js"></script>
+        <script type="text/javascript" src="app/filtering.js"></script>
         <script type="text/javascript" src="app/detection.js"></script>
+        <script type="text/javascript" src="app/update.js"></script>
         
         <script type="text/javascript">
             "use strict";
@@ -27,7 +30,7 @@
                 curr_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
                 prev_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
         
-                window.setInterval(on_update, 67);
+                window.setInterval(update_frame, 67);
                 
                 init_audio();
             }

@@ -35,8 +35,8 @@ let buffer = new Buffer(contexteAudio, audio_files, function() {
         var steps = new Sound(contexteAudio, buffer.getSoundByIndex(i));
         var source = steps.source;
         
-        steps.play();
         source.connect(sources[i].gain);
+        steps.play();
     }
 });
 

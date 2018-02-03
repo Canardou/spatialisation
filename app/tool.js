@@ -10,6 +10,11 @@ function dot_product(j, k) {
     return k.x * j.x + k.y * j.y;
 }
 
+// return the length of a vector
+function vector_length(j) {
+    return Math.sqrt(dot_product(j, j));
+}
+
 function is_valid_point(j) {
     return point_status[j] == 1
         && point_speed[j] > 0
@@ -18,32 +23,16 @@ function is_valid_point(j) {
         && point_direction[j].y != Infinity;
 }
 
+function is_rect_inside(current, other, eps) {
+    return current.top    - eps < other.top
+        && current.bottom + eps > other.bottom
+        && current.left   - eps < other.left
+        && current.right  + eps > other.right;
+}
+
 function random_position(canvas) {
     return {
         x:Math.floor(Math.random()*canvas.width),
         y:30+Math.floor(Math.random()*(canvas.height-60))
     }; 
-}
-
-function prune_oflow_points(ctx) {
-    var n = point_count;
-    var i=0;
-    var sound = 0;
-    for(; i < n; ++i) {
-        if(point_status[i] == 1) {
-            var velocity = {x:prev_xy[i<<1]-curr_xy[i<<1], y:prev_xy[(i<<1)+1]-curr_xy[(i<<1)+1]}
-            
-            var speed = Math.floor(Math.sqrt(velocity.x*velocity.x + velocity.y*velocity.y));
-                speed = Math.min(Math.max(0,speed),255);
-            
-            point[i] = {x:prev_xy[i<<1], y:prev_xy[(i<<1)+1]}
-            point_direction[i] = {x:velocity.x/speed, y:velocity.y/speed};
-            point_speed[i] = speed;
-
-            if(speed > win_size)
-                point_status[i] = 0;
-            else if (debug)
-                draw_line(ctx, prev_xy[i<<1], prev_xy[(i<<1)+1], point_direction[i], speed, "green");
-        }
-    }
 }
