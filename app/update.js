@@ -80,8 +80,10 @@ function update_sound_from_objects(ctx) {
             
             if(size<3000)
                 src_id = 1;
-            else
+            else if(point_speed[id] > 10)
                 src_id = 0;
+            else
+                continue;
                 
             sources[src_id].panner.setPosition(point[id].x,point[id].y,0);
             //if(navigator.userAgent.indexOf("Firefox"))
