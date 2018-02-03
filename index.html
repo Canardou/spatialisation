@@ -1,6 +1,7 @@
 <html>
     <head>
         <script type="text/javascript" src="jsfeat.js"></script>
+        <script type="text/javascript" src="soundHelper.js"></script>
     </head>
     <body>
         <button id="play_pause" onclick="play_pause()" type="button">Pause</button>
@@ -11,7 +12,7 @@
         <input type="checkbox" autocomplete=off onchange="setDebug(this.checked)" id="debug" value="debug"><label for="debug">Debug</label>
         <div id="log"></div>
         <script type="text/javascript">
-        /* global jsfeat */
+        /* global jsfeat, performance, Buffer, Sound */
         "use strict";
         var debug = false;
         function setDebug(bool){
@@ -65,7 +66,7 @@
                 curr_xy[k<<1] = coords.x;
                 curr_xy[(k<<1)+1] = coords.y;
             }
-            setInterval(snapshot, 100);
+            setInterval(snapshot, 67);
             
             if(listener.forwardX) {
               listener.forwardX.value = 0;
@@ -157,21 +158,24 @@
                         if(!is_valid_point(k))
                             continue;
                         
-                        var distance = (point[j].x-point[k].x)*(point[j].x-point[k].x) + (point[j].y-point[k].y)*(point[j].y-point[k].y);
-                        var dot_result = point_direction[k].x * point_direction[j].x + point_direction[k].y * point_direction[j].y;
-                        var speed_diff = Math.abs(point_speed[k]-point_speed[j]);
+                        let distance = (point[j].x-point[k].x)*(point[j].x-point[k].x) + (point[j].y-point[k].y)*(point[j].y-point[k].y);
+                        let dot_result = point_direction[k].x * point_direction[j].x + point_direction[k].y * point_direction[j].y;
+                        let speed_diff = Math.abs(point_speed[k]-point_speed[j]);
                         
-                        if( dot_result > 0.9 && distance < win_size_sq*8 && speed_diff < 2){
-                            if(objects[j] == undefined){
-                                objects[j] = {id:j, left:point[j].x, 
+                        if( dot_result > 0.8 && distance < win_size_sq*16 && speed_diff < 2){
+                            var object = objects.find(x => x.id === j);
+                            if(object == undefined){
+                                object = {id:j, left:point[j].x, 
                                                     top:point[j].y,
                                                     right:point[j].x,
-                                                    bottom:point[j].y};
+                                                    bottom:point[j].y
+                                };
+                                objects.push(object);
                             }
-                            objects[j] = {id:objects[j].id, left:Math.min(objects[j].left,point[k].x), 
-                                                    top:Math.min(objects[j].top,point[k].y),
-                                                    right:Math.max(objects[j].right,point[k].x),
-                                                    bottom:Math.max(objects[j].bottom,point[k].y)};
+                            object.left = Math.min(object.left,point[k].x);
+                            object.top = Math.min(object.top,point[k].y);
+                            object.right = Math.max(object.right,point[k].x);
+                            object.bottom = Math.max(object.bottom,point[k].y);
                             point_id_followed[k] = j
                             point_id_followed[j] = j
                             point_id_follower_count[j]++;
@@ -188,34 +192,64 @@
                 }
                 
                 var t4 = performance.now();
-                // reset at max distance to "stop" listenning 
-                // fix huge noise when starting the video
+                //If inside of another object, remove
+                var tmp_win_size = win_size;
+                for(var k=0; k<5; ++k){
+                    for(var i=0; i < objects.length/2; ++i) {
+                        var current = objects[i];
+                        for(var j=i+1; j < objects.length; ++j) {
+                            var other = objects[j];
+                            if(current.top-tmp_win_size<other.top && current.bottom+tmp_win_size>other.bottom && current.left-tmp_win_size<other.left && current.right+tmp_win_size>other.right){
+                                let dot_result = point_direction[current.id].x * point_direction[other.id].x + point_direction[current.id].y * point_direction[other.id].y;
+                                
+                                if( dot_result > 0){
+                                    point_status[other.id] = 0;
+                                    current.top = Math.min(current.top,other.top);
+                                    current.left = Math.min(current.left,other.left);
+                                    current.right = Math.max(current.right,other.right);
+                                    current.bottom = Math.max(current.bottom,other.bottom);
+                                }
+                            }
+                        }
+                    }
+                    tmp_win_size += win_size;
+                }
 
                 document.getElementById("log").innerHTML = "";
+                wakaNode.gain.setValueAtTime(0, contexteAudio.currentTime);
                 
                 var max_speed = 0;
-                for(var i=0; i < point_count; ++i) {
-                    if(point_status[i] == 1 && point_id_follower_count[i] > 3) {
+                
+                for(var i=0; i < objects.length; ++i) {
+                    var id = objects[i].id;
+                    if(point_status[id] == 1 && point_id_follower_count[id] > 3) {
                         if(debug)
-                            draw_line(ctx, point[i].x, point[i].y, point_direction[i], point_speed[i], "red");
-                        if(max_speed < point_speed[i]){
-                            max_speed = point_speed[i]
-                            panner.setPosition(point[i].x,point[i].y,0);
-                            //panner.setVelocity(point_direction[i].x, point_direction[i].y, 0);//Firefox only
-                            gainNode.gain.setValueAtTime(point_speed[i], contexteAudio.currentTime);
-                            if(debug){
-                                ctx.beginPath();
-                                ctx.lineWidth="2";
-                                ctx.strokeStyle="blue";
-                                ctx.rect(objects[i].left,objects[i].top,objects[i].right-objects[i].left,objects[i].bottom-objects[i].top);
-                                ctx.stroke();
-                                ctx.font = "15px Comic Sans MS";
-                                ctx.fillStyle = "blue";
-                                ctx.textAlign = "center";
-                                ctx.fillText("id:" + objects[i].id, objects[i].left, objects[i].top - 15); 
-                            }
-                            if(debug)
-                                document.getElementById("log").innerHTML += "<div>Objects "+objects[i].id+"<br>Speed : "+Math.floor(point_speed[i])+"<br>x:"+Math.floor(objects[i].left)+", y:"+Math.floor(objects[i].top)+", w:"+Math.floor(objects[i].right-objects[i].left)+", h:"+Math.floor(objects[i].bottom-objects[i].top)+"</div>";
+                            draw_line(ctx, point[id].x, point[id].y, point_direction[id], point_speed[id], "red");
+                        var width = objects[i].right-objects[i].left;
+                        var height =  objects[i].bottom-objects[i].top;
+                        var size = width * height;
+                        if(size<3000) {
+                            wakaPanner.setPosition(point[id].x,point[id].y,0);
+                            wakaNode.gain.setValueAtTime(5.0, contexteAudio.currentTime);
+                        }
+                        else if(max_speed < point_speed[i]){
+                            max_speed = point_speed[id]
+                            panner.setPosition(point[id].x,point[id].y,0);
+                            //panner.setVelocity(point_direction[id].x, point_direction[id].y, 0);//Firefox only
+                            gainNode.gain.setValueAtTime(point_speed[id], contexteAudio.currentTime);
+                        }
+                        if(debug)
+                                document.getElementById("log").innerHTML += "<div>Object id : "+id+"<br>Speed : "+Math.floor(point_speed[i])+"<br>x:"+Math.floor(objects[i].left)+", y:"+Math.floor(objects[i].top)+", w:"+Math.floor(objects[i].right-objects[i].left)+", h:"+Math.floor(objects[i].bottom-objects[i].top)+"</div>";
+                        if(debug){
+                            ctx.beginPath();
+                            ctx.lineWidth="2";
+                            ctx.strokeStyle="blue";
+                            ctx.rect(objects[i].left,objects[i].top,width,height);
+                            ctx.stroke();
+                            ctx.font = "15px Comic Sans MS";
+                            ctx.fillStyle = "blue";
+                            ctx.textAlign = "center";
+                            ctx.fillText("id:" + objects[i].id, objects[i].left, objects[i].top - 15); 
                         }
                     }
                 }
@@ -311,51 +345,40 @@
         panner.coneOuterAngle = 0;
         panner.coneOuterGain = 0;
         
+        var wakaPanner = contexteAudio.createPanner();
+        wakaPanner.panningModel = 'HRTF';
+        wakaPanner.distanceModel = 'inverse';
+        wakaPanner.refDistance = 1;
+        wakaPanner.maxDistance = 10000;
+        wakaPanner.rolloffFactor = 1;
+        wakaPanner.coneInnerAngle = 360;
+        wakaPanner.coneOuterAngle = 0;
+        wakaPanner.coneOuterGain = 0;
+        
         var listener = contexteAudio.listener;
         
-        var source;
-        function getData() {
-            source = contexteAudio.createBufferSource();
-            var request = new XMLHttpRequest();
+        let buffer = new Buffer(contexteAudio, ['steps.wav','waka.wav'], function(){
+            var steps = new Sound(contexteAudio, buffer.getSoundByIndex(0));
+            steps.play();
+            var source = steps.source;
+            source.connect(gainNode);
             
-            request.open('GET', '7274.wav', true);
-            
-            request.responseType = 'arraybuffer';
-            
-            request.onload = function() {
-            var audioData = request.response;
-            
-            contexteAudio.decodeAudioData(audioData, function(buffer) {
-                var myBuffer = buffer;
-                source.buffer = myBuffer;
-                source.connect(gainNode);
-                source.loop = true;
-              },
-            
-              function(e){"Error with decoding audio data" + e.err});
-            
-            }
-            
-            request.send();
-        }
-            
-        // wire up buttons to stop and play audio, and range slider control
-        getData();
-        source.start(0);
-
-        
-        // create Oscillator node
-        var oscillator = contexteAudio.createOscillator();
-        oscillator.type = 'square';
-        oscillator.frequency.setValueAtTime(440, 0); // valeur en hertz
-        oscillator.detune.setValueAtTime(0.2, 0);
+            var waka = new Sound(contexteAudio, buffer.getSoundByIndex(1));
+            waka.play();
+            source = waka.source;
+            source.connect(wakaNode);
+        });
+        buffer.loadAll();
 
         var gainNode = contexteAudio.createGain();
+        var wakaNode = contexteAudio.createGain();
+        wakaNode.connect(wakaPanner);
         gainNode.connect(panner);
         panner.connect(contexteAudio.destination);
+        wakaPanner.connect(contexteAudio.destination);
         gainNode.gain.setValueAtTime(0.0, contexteAudio.currentTime);
-        
-        oscillator.start();
+        wakaNode.gain.setValueAtTime(0.0, contexteAudio.currentTime);
+
         //oscillator.stop(contexteAudio.currentTime + 0.1);
         </script>
     </body>
