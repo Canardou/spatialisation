@@ -15,17 +15,17 @@ function draw_line(ctx, x, y, velocity, speed, color) {
     ctx.stroke();
 }
 
-function draw_object_debug(ctx, object, color) {
+function draw_object_debug(ctx, object, color, thickness, font) {
     var width = object.right-object.left;
     var height = object.bottom-object.top;
     var size = width * height;
 
     ctx.beginPath();
-    ctx.lineWidth="2";
+    ctx.lineWidth=thickness;
     ctx.strokeStyle=color;
     ctx.rect(object.left,object.top,width,height);
     ctx.stroke();
-    ctx.font = "15px Comic Sans MS";
+    ctx.font = font + "Comic Sans MS";
     ctx.fillStyle = color;
     ctx.textAlign = "center";
     ctx.fillText("id:" + object.id, object.left, object.top - 15); 

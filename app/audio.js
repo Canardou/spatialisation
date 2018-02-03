@@ -1,48 +1,61 @@
-// crée un contexteaudio
 var contexteAudio = new (window.AudioContext || window.webkitAudioContext)();
-
-var panner = contexteAudio.createPanner();
-panner.panningModel = 'HRTF';
-panner.distanceModel = 'inverse';
-panner.refDistance = 1;
-panner.maxDistance = 10000;
-panner.rolloffFactor = 1;
-panner.coneInnerAngle = 360;
-panner.coneOuterAngle = 0;
-panner.coneOuterGain = 0;
-
-var wakaPanner = contexteAudio.createPanner();
-wakaPanner.panningModel = 'HRTF';
-wakaPanner.distanceModel = 'inverse';
-wakaPanner.refDistance = 1;
-wakaPanner.maxDistance = 10000;
-wakaPanner.rolloffFactor = 1;
-wakaPanner.coneInnerAngle = 360;
-wakaPanner.coneOuterAngle = 0;
-wakaPanner.coneOuterGain = 0;
-
 var listener = contexteAudio.listener;
 
-let buffer = new Buffer(contexteAudio, ['steps.wav','waka.wav'], function(){
-    var steps = new Sound(contexteAudio, buffer.getSoundByIndex(0));
-    steps.play();
-    var source = steps.source;
-    source.connect(gainNode);
+var audio_files = ['steps.wav','waka.wav'];
+var sources = [];
+
+for(var i = 0; i<audio_files.length; ++i) {
+    var panner = contexteAudio.createPanner();
+    var gain = contexteAudio.createGain();
     
-    var waka = new Sound(contexteAudio, buffer.getSoundByIndex(1));
-    waka.play();
-    source = waka.source;
-    source.connect(wakaNode);
+    panner.panningModel = 'HRTF';
+    panner.distanceModel = 'inverse';
+    panner.refDistance = 1;
+    panner.maxDistance = 10000;
+    panner.rolloffFactor = 1;
+    panner.coneInnerAngle = 360;
+    panner.coneOuterAngle = 0;
+    panner.coneOuterGain = 0;
+    // init at max distance to remove starting noise
+    panner.setPosition(0,0,20000);
+    
+    gain.connect(panner);
+    panner.connect(contexteAudio.destination);
+    gain.gain.setValueAtTime(0.0, contexteAudio.currentTime);
+    
+    sources.push({
+        panner: panner,
+        filename: audio_files[i],
+        gain: gain
+    });
+}
+
+let buffer = new Buffer(contexteAudio, audio_files, function() {
+    for(var i = 0; i<buffer.getSoundCount(); ++i) {
+        var steps = new Sound(contexteAudio, buffer.getSoundByIndex(i));
+        var source = steps.source;
+        
+        steps.play();
+        source.connect(sources[i].gain);
+    }
 });
+
 buffer.loadAll();
 
-var gainNode = contexteAudio.createGain();
-var wakaNode = contexteAudio.createGain();
-wakaNode.connect(wakaPanner);
-gainNode.connect(panner);
-panner.connect(contexteAudio.destination);
-wakaPanner.connect(contexteAudio.destination);
-gainNode.gain.setValueAtTime(0.0, contexteAudio.currentTime);
-wakaNode.gain.setValueAtTime(0.0, contexteAudio.currentTime);
-
-//oscillator.stop(contexteAudio.currentTime + 0.1);
+function init_audio() {
+    if(listener.forwardX) {
+      listener.forwardX.value = 0;
+      listener.forwardY.value = 0;
+      listener.forwardZ.value = -1;
+      listener.upX.value = 0;
+      listener.upY.value = 1;
+      listener.upZ.value = 0;
+    }
+    else {
+      listener.setOrientation(0,0,-1,0,1,0);
+    }
+    
+    listener.positionX.value = canvas.width/2;
+    listener.positionY.value = canvas.height/2;
+    listener.positionZ.value = 50;
+}

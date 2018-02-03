@@ -2,7 +2,7 @@ var file = document.getElementById('file');
 var btn = document.getElementById('play_pause');
 
 var debug = false;
-function setDebug(bool){
+function set_debug(bool){
     debug = bool;
 }
 
@@ -15,4 +15,12 @@ function play_pause() {
       file.pause();
       btn.innerHTML = "Play";
   }
+}
+
+function getMousePos(evt) {
+    var rect = canvas.getBoundingClientRect();
+    mouse = {
+      x: evt.clientX - rect.left,
+      y: evt.clientY - rect.top
+    };
 }

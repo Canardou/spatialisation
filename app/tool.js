@@ -1,5 +1,15 @@
 var mouse;
 
+// return square of the length of two point
+function length_sq(j, k) {
+    return (j.x-k.x)*(j.x-k.x)
+         + (j.y-k.y)*(j.y-k.y)
+}
+
+function dot_product(j, k) {
+    return k.x * j.x + k.y * j.y;
+}
+
 function is_valid_point(j) {
     return point_status[j] == 1
         && point_speed[j] > 0
@@ -8,12 +18,11 @@ function is_valid_point(j) {
         && point_direction[j].y != Infinity;
 }
 
-function getMousePos(evt) {
-    var rect = canvas.getBoundingClientRect();
-    mouse = {
-      x: evt.clientX - rect.left,
-      y: evt.clientY - rect.top
-    };
+function random_position(canvas) {
+    return {
+        x:Math.floor(Math.random()*canvas.width),
+        y:30+Math.floor(Math.random()*(canvas.height-60))
+    }; 
 }
 
 function prune_oflow_points(ctx) {

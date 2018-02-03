@@ -10,7 +10,7 @@
         </video>
         
         <p><canvas id="canvas"></canvas></p>
-        <input type="checkbox" autocomplete=off onchange="setDebug(this.checked)" id="debug" value="debug">
+        <input type="checkbox" autocomplete=off onchange="set_debug(this.checked)" id="debug" value="debug">
         <label for="debug">Debug</label>
         <div id="log"></div>
         
@@ -18,256 +18,21 @@
         <script type="text/javascript" src="app/audio.js"></script>
         <script type="text/javascript" src="app/draw.js"></script>
         <script type="text/javascript" src="app/tool.js"></script>
+        <script type="text/javascript" src="app/detection.js"></script>
         
         <script type="text/javascript">
-        /* global jsfeat, performance, Buffer, Sound */
-        "use strict";
-        var file = document.getElementById('file');
-        
-        //file.playbackRate = 0.5;
-        var canvas = document.getElementById('canvas');
-        var videoStream = null;
-        
-        var curr_img_pyr = new jsfeat.pyramid_t(3);
-        var prev_img_pyr = new jsfeat.pyramid_t(3);
-        var win_size = 25,
-            max_iterations = 30,
-            epsilon = 0.01,
-            min_eigen = 0.001;
-            
-        var point_count = 200;
-        var win_size_sq = win_size*win_size;
-        
-        var prev_xy = new Float32Array(point_count*2);
-        var curr_xy = new Float32Array(point_count*2);
-        var point_status = new Uint8Array(point_count);
-        var point_id_followed = new Uint8Array(point_count);
-        var point_id_follower_count = new Uint8Array(point_count);
-        var point_speed = new Float32Array(point_count);
-        var point_direction = [];
-        var point = [];
-        var objects = [];
-        var reset_point = 0;
-        
-        window.onload=function(){
-            curr_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
-            prev_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
-            for(var k=0; k<point_count; k++){
-        	    var coords = {x:Math.floor(Math.random()*canvas.width), y:30+Math.floor(Math.random()*(canvas.height-60))}; 
-                curr_xy[k<<1] = coords.x;
-                curr_xy[(k<<1)+1] = coords.y;
-            }
-            setInterval(snapshot, 67);
-            
-            if(listener.forwardX) {
-              listener.forwardX.value = 0;
-              listener.forwardY.value = 0;
-              listener.forwardZ.value = -1;
-              listener.upX.value = 0;
-              listener.upY.value = 1;
-              listener.upZ.value = 0;
-            } else {
-              listener.setOrientation(0,0,-1,0,1,0);
-            }
-            listener.positionX.value = canvas.width/2;
-            listener.positionY.value = canvas.height/2;
-            listener.positionZ.value = 50;
-            
-            panner.setPosition(0,0,0);
-        }
-            
-        function snapshot()
-        {
-          if(file.paused)
-              return;
-        
-        	canvas.width = file.videoWidth;
-        	canvas.height = file.videoHeight;
-        	
-    	    for(var i=0; i<point_count; i++){
-    	        if(point_speed[i] < 0.1 || point_status[i] == 0 || reset_point == i){
-            	    var coords = {x:Math.floor(Math.random()*canvas.width), y:30+Math.floor(Math.random()*(canvas.height-60))}; 
-                    curr_xy[i<<1] = coords.x;
-                    curr_xy[(i<<1)+1] = coords.y;
-    	        }
-    	    }
-    	    reset_point = (reset_point+1)%point_count;
-        	
-        	var ctx = canvas.getContext('2d');
-        	ctx.drawImage(file, 0, 0);
-        	try{
-        	    if(mouse)
-            	    draw_circle(ctx, mouse.x, mouse.y);
-            	    
-            	var t0 = performance.now();
-                var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            	
-                var pixels = imageData.data;
-                 
-                var gray_img = new jsfeat.matrix_t(canvas.width, canvas.height, jsfeat.U8_t | jsfeat.C1_t);
-                var code = jsfeat.COLOR_RGBA2GRAY;
-                
-                var _pyr = prev_img_pyr;
-                prev_img_pyr = curr_img_pyr;
-                curr_img_pyr = _pyr;
-                var _pt_xy = prev_xy;
-                prev_xy = curr_xy;
-                curr_xy = _pt_xy;
-                
-                jsfeat.imgproc.grayscale(imageData.data, canvas.width, canvas.height, curr_img_pyr.data[0], code);
-                
-                curr_img_pyr.build(curr_img_pyr.data[0], true);
-                var t1 = performance.now();
-                jsfeat.optical_flow_lk.track(prev_img_pyr, curr_img_pyr, prev_xy, curr_xy, point_count, win_size, max_iterations, point_status, epsilon, min_eigen);
-                var t2 = performance.now();
-                /*var data_u32 = new Uint32Array(imageData.data.buffer);
-                var alpha = (0xff << 24);
-                var i = curr_img_pyr.data[0].cols*curr_img_pyr.data[0].rows, pix = 0;
-                while(--i >= 0) {
-                    pix = curr_img_pyr.data[0].data[i];
-                    data_u32[i] = alpha | (pix << 16) | (pix << 8) | pix;
-                }*/
+            "use strict";
 
-                //draw points remove too high speed (win size = 20)
-                prune_oflow_points(ctx);
-                var t3 = performance.now();
-                //find same direction vectors (distance point to point < winsize)
-                //almost same direction
-                
-                for(var j = 0; j < point_count; ++j) {
-                    point_id_followed[j] = 255;
-                    point_id_follower_count[j] = 0;
-                }
-                
-                objects = [];
-                
-                for(var j = 0; j < point_count/2; ++j) {
-                    if(!is_valid_point(j))
-                        continue;
-                    
-                    for(var k = j+1; k < point_count; ++k) {
-                        if(!is_valid_point(k))
-                            continue;
-                        
-                        let distance = (point[j].x-point[k].x)*(point[j].x-point[k].x) + (point[j].y-point[k].y)*(point[j].y-point[k].y);
-                        let dot_result = point_direction[k].x * point_direction[j].x + point_direction[k].y * point_direction[j].y;
-                        let speed_diff = Math.abs(point_speed[k]-point_speed[j]);
-                        
-                        if( dot_result > 0.8 && distance < win_size_sq*16 && speed_diff < 2){
-                            var object = objects.find(x => x.id === j);
-                            if(object == undefined){
-                                object = {id:j, left:point[j].x, 
-                                                    top:point[j].y,
-                                                    right:point[j].x,
-                                                    bottom:point[j].y
-                                };
-                                objects.push(object);
-                            }
-                            object.left = Math.min(object.left,point[k].x);
-                            object.top = Math.min(object.top,point[k].y);
-                            object.right = Math.max(object.right,point[k].x);
-                            object.bottom = Math.max(object.bottom,point[k].y);
-                            point_id_followed[k] = j
-                            point_id_followed[j] = j
-                            point_id_follower_count[j]++;
-                            point[j].x = (point[j].x+point[k].x)/2;
-                            point[j].y = (point[j].y+point[k].y)/2;
-                            point_direction[j].x = (point_direction[j].x+point_direction[k].x)/2;
-                            point_direction[j].y = (point_direction[j].y+point_direction[k].y)/2;
-                            var length = Math.floor(Math.sqrt(point_direction[j].x*point_direction[j].x + point_direction[j].y*point_direction[j].y));
-                            point_direction[j].x /= length;
-                            point_direction[j].y /= length;
-                            point_speed[j] = (point_speed[k]+point_speed[j])/2;
-                        }
-                    }
-                }
-                
-                var t4 = performance.now();
-                //If inside of another object, remove
-                for(var i=0; i < objects.length; ++i) {
-                    if(debug){
-                        ctx.beginPath();
-                        ctx.lineWidth="1";
-                        ctx.strokeStyle="purple";
-                        ctx.rect(objects[i].left,objects[i].top,width,height);
-                        ctx.stroke();
-                        ctx.font = "8px Comic Sans MS";
-                        ctx.fillStyle = "purple";
-                        ctx.textAlign = "center";
-                        ctx.fillText(objects[i].id, objects[i].left, objects[i].top); 
-                    }
-                }
-                var tmp_win_size = win_size;
-                for(var k=0; k<5; ++k){
-                    for(var i=0; i < objects.length/2; ++i) {
-                        var current = objects[i];
-                        for(var j=i+1; j < objects.length; ++j) {
-                            var other = objects[j];
-                            if(current.top-tmp_win_size<other.top && current.bottom+tmp_win_size>other.bottom && current.left-tmp_win_size<other.left && current.right+tmp_win_size>other.right){
-                                let dot_result = point_direction[current.id].x * point_direction[other.id].x + point_direction[current.id].y * point_direction[other.id].y;
-                                
-                                if( dot_result > 0){
-                                    point_status[other.id] = 0;
-                                    current.top = Math.min(current.top,other.top);
-                                    current.left = Math.min(current.left,other.left);
-                                    current.right = Math.max(current.right,other.right);
-                                    current.bottom = Math.max(current.bottom,other.bottom);
-                                }
-                            }
-                        }
-                    }
-                    tmp_win_size += win_size;
-                }
-
-                document.getElementById("log").innerHTML = "";
-                wakaNode.gain.setValueAtTime(0, contexteAudio.currentTime);
-                
-                var max_speed = 0;
-                
-                for(var i=0; i < objects.length; ++i) {
-                    var id = objects[i].id;
-                    if(point_status[id] == 1 && point_id_follower_count[id] > 3) {
-                        if(debug)
-                            draw_line(ctx, point[id].x, point[id].y, point_direction[id], point_speed[id], "red");
-                        
-                        var width = objects[i].right-objects[i].left;
-                        var height =  objects[i].bottom-objects[i].top;
-                        var size = width * height;
-                        
-                        if(size<3000) {
-                            wakaPanner.setPosition(point[id].x,point[id].y,0);
-                            wakaNode.gain.setValueAtTime(5.0, contexteAudio.currentTime);
-                            if(debug)
-                                draw_object_debug(ctx, objects[i], "yellow");
-                        }
-                        else if(max_speed < point_speed[i]){
-                            max_speed = point_speed[id]
-                            panner.setPosition(point[id].x,point[id].y,0);
-                            //panner.setVelocity(point_direction[id].x, point_direction[id].y, 0);//Firefox only
-                            gainNode.gain.setValueAtTime(point_speed[id], contexteAudio.currentTime);
-                            if(debug)
-                                draw_object_debug(ctx, objects[i], "red");
-                        }
-                        if(debug)
-                            draw_debug_log_object(id, objects[i], point_speed[i])
-                    }
-                }
-                
-                gainNode.gain.setValueAtTime(max_speed, contexteAudio.currentTime);
-                
-                var t5 = performance.now();
-                if(debug)
-                    draw_debug_log_time(t0, t1, t2, t3, t4, t5);
-                //should iterate a second time to merge close found vector and keep them in memory in between frame (kalman ?)
-                
-                
-        	}
-        	catch (e){
-        	    console.log(e);
-        	}
-        }
+            window.onload = function() {
+                curr_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
+                prev_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
         
-        window.addEventListener('mousemove', getMousePos, false);
+                window.setInterval(on_update, 67);
+                
+                init_audio();
+            }
+            
+            window.addEventListener('mousemove', getMousePos, false);
         </script>
     </body>
 </html>
