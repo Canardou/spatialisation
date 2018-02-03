@@ -53,17 +53,28 @@ function draw_log_objects(objects, speeds) {
         return;
         
     function add_row(object, speed) {
-        return "<tr><td>" + object.id + "</td><td>" + speed.toFixed(3) + "</td><td>" +
-                25
-              + "</td></tr>";
+        return "<tr>"
+             + "<td>" + object.id                 + "</td>"
+             + "<td>" + speed.toFixed(1)          + "</td>"
+             + "<td>" + Math.floor(object.top)    + "</td>"
+             + "<td>" + Math.floor(object.left)   + "</td>"
+             + "<td>" + Math.floor(object.bottom) + "</td>"
+             + "<td>" + Math.floor(object.right)  + "</td>"
+             + "</tr>";
     }
         
     var table = 
-          "<table style='position:absolute;display:block;top:150px;left:400px;width:300px'>"
-        + "<tr><td width='140px'>Object id</td><td width='120px'>Speed</td><td width='150px'>Coords</td></tr>";
+          "<table style='text-align: right;position:absolute;display:block;top:150px;left:400px;' border='1'>"
+        + "<tr>"
+        + "<td><div style='width:40px;'>Id</div></td>"
+        + "<td><div style='width:70px;'>Speed</div></td>"
+        + "<td><div style='width:70px;'>top</div></td>"
+        + "<td><div style='width:70px;'>left</div></td>"
+        + "<td><div style='width:70px;'>bottom</div></td>"
+        + "<td><div style='width:70px;'>right</div></td></tr>";
         
     for(var i=0; i<objects.length; ++i)
-        table += add_row(objects[i], speeds[i]);
+        table += add_row(objects[i], speeds[i]).replace("NaN","");
     
     table += "</table>";
     
@@ -80,7 +91,7 @@ function draw_log_time(t0, t1, t2, t3, t4, t5) {
     }
         
     log.innerHTML +=
-       "<table style='position:absolute;display:block;top:10px;left:400px'>"
+       "<table style='position:absolute;display:block;top:10px;left:400px' border='1'>"
       + add_row("Preparation donnees",      t1-t0)
       + add_row("Lukas kanade",             t2-t1)
       + add_row("Tri des points",           t3-t2)
