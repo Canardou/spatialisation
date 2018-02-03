@@ -1,13 +1,13 @@
 body {
     color: #fff;
-    background-color: #151515;
+    background-color: #2D2F33;
 }
 
 #benchmark {
     border-spacing: 1px;
     position: absolute;
     display: block;
-    top: 10px;
+    top: 15px;
     left: 400px
 }
 #benchmark table {
@@ -39,7 +39,7 @@ body {
     position: absolute;
     display: block;
     top: 150px;
-    left: 400px;
+    left: 400px
 }
 #nodes table {
     border: 1px solid black;
@@ -58,4 +58,22 @@ body {
 #nodes tr:nth-child(odd) {
     color: #000;
     background-color: #fff;
+}
+
+#input {
+    border: 0;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,.09),inset 0 1px 0 rgba(255,255,255,.04), 0 0 1px rgba(0,0,0,.3), 0 0 10px rgba(0,0,0,.1);
+    border-radius: 10px;
+    color: rgba(255,255,255,.9);
+    text-align: center;
+    width: 100px;
+    display: inline-block;
+    background-color: #151515;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 1em;
+}
+
+#canvas {
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,.09),inset 0 1px 0 rgba(255,255,255,.04), 0 0 1px rgba(0,0,0,.3), 0 0 10px rgba(0,0,0,.1);
+    border-radius: 10px;
 }
