@@ -64,14 +64,14 @@ function draw_log_objects(objects, speeds) {
     }
         
     var table = 
-          "<table style='text-align: right;position:absolute;display:block;top:150px;left:400px;' border='1'>"
+          "<table id='nodes'>"
         + "<tr>"
-        + "<td><div style='width:40px;'>Id</div></td>"
-        + "<td><div style='width:70px;'>Speed</div></td>"
-        + "<td><div style='width:70px;'>top</div></td>"
-        + "<td><div style='width:70px;'>left</div></td>"
-        + "<td><div style='width:70px;'>bottom</div></td>"
-        + "<td><div style='width:70px;'>right</div></td></tr>";
+        + "<th><div style='width:40px;'>Id</div></th>"
+        + "<th><div style='width:70px;'>Speed</div></th>"
+        + "<th><div style='width:70px;'>top</div></th>"
+        + "<th><div style='width:70px;'>left</div></th>"
+        + "<th><div style='width:70px;'>bottom</div></th>"
+        + "<th><div style='width:70px;'>right</div></th></tr>";
         
     for(var i=0; i<objects.length; ++i)
         table += add_row(objects[i], speeds[i]).replace("NaN","");
@@ -86,12 +86,12 @@ function draw_log_time(t0, t1, t2, t3, t4, t5) {
         return;
         
     function add_row(title, time) {
-        return "<tr><td>" + title + "</td><td style='text-align: right;'>"
+        return "<tr><th>" + title + "</th><td>"
              + time.toFixed(3) + "ms</td></tr>"
     }
         
     log.innerHTML +=
-       "<table style='position:absolute;display:block;top:10px;left:400px' border='1'>"
+       "<table id='benchmark'"
       + add_row("Preparation donnees",      t1-t0)
       + add_row("Lukas kanade",             t2-t1)
       + add_row("Tri des points",           t3-t2)
