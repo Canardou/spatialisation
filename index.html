@@ -11,14 +11,12 @@
         
         <p><canvas id="canvas"></canvas></p>
         
-        <audio id="audio" controls></audio>
-        <br><br>
-        
         <button id="play_pause" onclick="play_pause()" type="button">Pause</button>
         <button id="debug_on_off" onclick="debug_on_off()" type="button">Debug on</button>
         <button id="save_data" onclick="download(JSON.stringify(json), 'json.txt', 'text/plain');" type="button">Save data</button><span id="save_data_log"></span>
         
         <div id="log"></div>
+        <br><audio id="audio" style="display:none" controls></audio>
         
         <script type="text/javascript" src="app/record.js"></script>
         <script type="text/javascript" src="app/data.js"></script>

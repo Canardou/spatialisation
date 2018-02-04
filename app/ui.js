@@ -3,13 +3,12 @@ var file = document.getElementById('file');
 var canvas = document.getElementById('canvas');
 var btn = document.getElementById('play_pause');
 var dbg_btn = document.getElementById('debug_on_off');
+var audio = document.getElementById('audio');
 
 var chunks = [];
 var mediaRecorder = new MediaRecorder(dest.stream);
 mediaRecorder.ondataavailable = function(evt) { chunks.push(evt.data); };
 mediaRecorder.start();
-          
-update_sound_blob();
           
 var debug = false;
 function debug_on_off(){
@@ -25,20 +24,25 @@ function debug_on_off(){
 function play_pause() {
     try {
       if(file.paused) {
+          
+          audio.style.display = "none";
+          
           json = [];
           logToJson.counter = 0;
           
           file.play();
-          mediaRecorder.resume();
+          mediaRecorder.start();
           
           btn.innerHTML = "Pause";
       }
       else {
+          audio.style.display = "block";
+          
           file.pause();
           btn.innerHTML = "Play";
 
           mediaRecorder.requestData();
-          mediaRecorder.pause();
+          mediaRecorder.stop();
           
           update_sound_blob();
       }
@@ -61,3 +65,10 @@ function update_sound_blob() {
     var audioTag = document.createElement('audio');
     document.querySelector("audio").src = URL.createObjectURL(blob);
 }
+
+mediaRecorder.onstop = function(evt) {
+    // Make blob out of our blobs, and open it.
+    var blob = new Blob(chunks, { 'type' : 'audio/ogg; codecs=opus' });
+    var audioTag = document.createElement('audio');
+    document.querySelector("audio").src = URL.createObjectURL(blob);
+};
