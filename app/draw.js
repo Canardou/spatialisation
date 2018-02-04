@@ -1,7 +1,4 @@
 function draw_circle(ctx, x, y) {
-    if(!debug)
-        return;
-        
     ctx.beginPath();
     ctx.arc(x, y, 12, 0, 2 * Math.PI, false);
     ctx.fillStyle = 'black';
@@ -46,7 +43,7 @@ function draw_object(ctx, object, color, thickness, font, overrideDebug) {
     ctx.strokeStyle=color;
     ctx.rect(object.left,object.top,width,height);
     ctx.stroke();
-    ctx.font = font + "Comic Sans MS";
+    ctx.font = font + " Comic Sans MS";
     ctx.fillStyle = color;
     ctx.textAlign = "center";
     ctx.fillText("id:" + object.meta_id, object.left, object.top - 15); 

@@ -95,7 +95,7 @@ function build_object_and_merge_vectors () {
 function merge_objects() {
     var tmp_win_size = win_size;
     
-    objects = objects.filter(e => (e.timestamp < 3));
+    objects = objects.filter(e => (e.timestamp < 2));
     
     for(var k=0; k<5; ++k){
         for(var i=0; i < objects.length; ++i) {
