@@ -10,12 +10,8 @@
         </video>
         <p><canvas id="canvas"></canvas></p>
         
-        <button id="input" onclick="play_pause()" type="button">Pause</button>
-        
-        <div id="input">
-        <input type="checkbox" autocomplete=off onchange="set_debug(this.checked)" value="debug">
-        <label for="debug">Debug</label>
-        </div>
+        <button id="play_pause" onclick="play_pause()" type="button">Pause</button>
+        <button id="debug_on_off" onclick="debug_on_off()" type="button">Debug on</button>
         
         <div id="log"></div>
         
@@ -25,7 +21,6 @@
         <script type="text/javascript" src="app/draw.js"></script>
         <script type="text/javascript" src="app/tool.js"></script>
         <script type="text/javascript" src="app/filtering.js"></script>
-        <script type="text/javascript" src="app/detection.js"></script>
         <script type="text/javascript" src="app/update.js"></script>
         
         <script type="text/javascript">

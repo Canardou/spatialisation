@@ -42,7 +42,9 @@ function update_frame() {
           // distance point to point < winsize
           var objects = build_object_and_merge_vectors();
           draw_objects(ctx, objects);
-          remove_inner_objects();
+          
+          
+          merge_objects();
           
           var t4 = performance.now();
           

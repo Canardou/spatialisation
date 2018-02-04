@@ -2,10 +2,17 @@ var log = document.getElementById('log');
 var file = document.getElementById('file');
 var canvas = document.getElementById('canvas');
 var btn = document.getElementById('play_pause');
+var dbg_btn = document.getElementById('debug_on_off');
 
 var debug = false;
-function set_debug(bool){
-    debug = bool;
+function debug_on_off(){
+    debug = !debug;
+    if(debug) {
+        dbg_btn.innerHTML = "Debug off";
+    }
+    else {
+        dbg_btn.innerHTML = "Debug on";
+    }
 }
 
 function play_pause() {

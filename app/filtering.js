@@ -78,7 +78,7 @@ function build_object_and_merge_vectors () {
     return objects;
 }
 
-function remove_inner_objects() {
+function merge_objects() {
     var tmp_win_size = win_size;
     for(var k=0; k<5; ++k){
         for(var i=0; i < objects.length/2; ++i) {
@@ -88,7 +88,7 @@ function remove_inner_objects() {
                 if(is_rect_inside(current, other, tmp_win_size)) {
                     let dot_result = dot_product(point_direction[current.id], point_direction[other.id]);
                     
-                    if(dot_result > 0) {
+                    if(dot_result > 0.75) {
                         point_status[other.id] = 0;
                         current.top = Math.min(current.top,other.top);
                         current.left = Math.min(current.left,other.left);

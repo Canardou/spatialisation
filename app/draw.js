@@ -74,7 +74,7 @@ function draw_log_objects(objects, speeds) {
         + "<th><div style='width:70px;'>right</div></th></tr>";
         
     for(var i=0; i<objects.length; ++i)
-        table += add_row(objects[i], speeds[i]).replace("NaN","");
+        table += add_row(objects[i], speeds[objects[i].id]).replace("NaN","");
     
     table += "</table>";
     
