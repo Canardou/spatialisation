@@ -3,7 +3,7 @@ var listener = contexteAudio.listener;
 
 var dest = contexteAudio.createMediaStreamDestination();
 
-var audio_files = ['steps.wav','waka.wav'];
+var audio_files = ['steps.wav','waka.wav','car.wav'];
 var sources = [];
 
 for(var i = 0; i<audio_files.length; ++i) {

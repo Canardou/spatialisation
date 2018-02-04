@@ -61,11 +61,12 @@ function update_frame() {
 function update_sound_from_objects(ctx) {
     sources[0].gain.gain.setValueAtTime(0, contexteAudio.currentTime);
     sources[1].gain.gain.setValueAtTime(0, contexteAudio.currentTime);
+    sources[2].gain.gain.setValueAtTime(0, contexteAudio.currentTime);
     
     log.innerHTML = "";
     draw_log_objects(tracked_objects, point_speed);
     
-    var src_color = ["red", "yellow"];
+    var src_color = ["red", "yellow", "blue"];
     
     for(var i=0; i < tracked_objects.length; ++i) {
         var object = tracked_objects[i];
@@ -73,12 +74,12 @@ function update_sound_from_objects(ctx) {
         
         var src_id = -1;
         
-        if(object.size<3000)
+        if(object.size<3000 && object.bottom-object.top<100 && object.speed > 15)
+            src_id = 2;
+        else if(object.bottom-object.top<100 && object.size<3000)
             src_id = 1;
-        else if(object.speed > 10)
-            src_id = 0;
         else
-            continue;
+            src_id = 0;
             
         sources[src_id].panner.setPosition(object.middle.x,object.middle.y,0);
         //if(navigator.userAgent.indexOf("Firefox"))

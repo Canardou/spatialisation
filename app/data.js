@@ -7,6 +7,7 @@ var win_size = 25,
     
 var point_count = 200;
 var win_size_sq = win_size*win_size;
+var reset_point = 0;
 
 // frame datas
 
@@ -53,12 +54,13 @@ function prepare_image(ctx) {
 
 function reset_static_point() {
   for(var i=0; i<point_count; i++){
-      if(point_speed[i] < 0.1 || point_status[i] == 0) {
+      if(point_speed[i] < 0.1 || point_status[i] == 0 || reset_point == i) {
           var coords = random_position(canvas); 
           curr_xy[i<<1] = coords.x;
           curr_xy[(i<<1)+1] = coords.y;
       }
   }
+  reset_point = (reset_point+1)%point_count;
 }
 
 function reset_followed_points() {

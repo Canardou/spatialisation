@@ -15,7 +15,7 @@ function prune_oflow_points(ctx) {
                 y:velocity.y/speed
             };
 
-            if(speed > win_size || speed < 1)
+            if(speed > win_size*2 || speed < 1)
                 point_status[i] = 0;
             else
                 draw_line(ctx, prev_xy[i<<1], prev_xy[(i<<1)+1], point_direction[i], speed, "green");
@@ -47,7 +47,9 @@ function build_object_and_merge_vectors () {
                         left:   point[j].x, 
                         top:    point[j].y,
                         right:  point[j].x,
-                        bottom: point[j].y
+                        bottom: point[j].y,
+                        direction: {},
+                        count: 1
                     };
                     objects.push(object);
                 }
@@ -59,7 +61,6 @@ function build_object_and_merge_vectors () {
                 
                 point_id_followed[k] = j
                 point_id_followed[j] = j
-                point_id_follower_count[j]++;
                 
                 point[j].x = (point[j].x+point[k].x)/2;
                 point[j].y = (point[j].y+point[k].y)/2;
@@ -71,6 +72,19 @@ function build_object_and_merge_vectors () {
                 point_direction[j].x /= length;
                 point_direction[j].y /= length;
                 point_speed[j] = (point_speed[k]+point_speed[j])/2;
+                
+                var width = (object.right-object.left);
+                var height = (object.bottom-object.top);
+                
+                object.size = width*height;
+                object.middle = {x:width/2+object.left,y:height/2+object.top};
+                object.direction.x = point_direction[j].x;
+                object.direction.y = point_direction[j].y;
+                object.speed = point_speed[j];
+                object.meta_id = Infinity;
+                object.timestamp = 0;
+                object.valid = true;
+                object.count++;
             }
         }
     }
@@ -78,26 +92,58 @@ function build_object_and_merge_vectors () {
     return objects;
 }
 
-function remove_inner_objects() {
-    var tmp_win_size = win_size;
+function merge_objects() {
+    var tmp_win_size = win_size*5;
+    
+    objects = objects.filter(e => (e.timestamp < 2));
+    
     for(var k=0; k<5; ++k){
-        for(var i=0; i < objects.length/2; ++i) {
+        for(var i=0; i < objects.length; ++i) {
             var current = objects[i];
-            for(var j=i+1; j < objects.length; ++j) {
-                var other = objects[j];
-                if(is_rect_inside(current, other, tmp_win_size)) {
-                    let dot_result = dot_product(point_direction[current.id], point_direction[other.id]);
-                    
-                    if(dot_result > 0) {
-                        point_status[other.id] = 0;
-                        current.top = Math.min(current.top,other.top);
-                        current.left = Math.min(current.left,other.left);
-                        current.right = Math.max(current.right,other.right);
-                        current.bottom = Math.max(current.bottom,other.bottom);
+            
+            if(current.valid){
+                for(var j=0; j < objects.length; ++j) {
+                    if( j != i ){
+                        var other = objects[j];
+                        if(other.valid && is_rect_inside(current, other, tmp_win_size)) {
+                            let dot_result = dot_product(current.direction, other.direction);
+                            
+                            if(dot_result > 0.8) {
+                                if (other.meta_id != 0 && other.meta_id < current.meta_id){
+                                    current.meta_id = other.meta_id;
+                                }
+                                else {
+                                    current.top = Math.min(current.top,other.top);
+                                    current.left = Math.min(current.left,other.left);
+                                    current.right = Math.max(current.right,other.right);
+                                    current.bottom = Math.max(current.bottom,other.bottom);
+                                    current.count += other.count;
+                                }
+                                other.valid = false;
+                            }
+                        }
                     }
                 }
             }
         }
-        tmp_win_size += win_size;
+    }
+    //removed invalid items
+    tracked_objects = objects.filter(e => (e.valid && e.count > 9));
+}
+
+function update_tracked_objects(){
+    for(var i=0; i < tracked_objects.length; ++i){
+        var object = tracked_objects[i];
+        var vx = object.direction.x*object.speed;
+        var vy = object.direction.y*object.speed;
+        object.left -= vx;
+        object.right -= vx;
+        object.top -= vy;
+        object.bottom -= vy;
+        object.middle.x -= vx;
+        object.middle.y -= vy;
+        object.timestamp++;
+        if(object.meta_id == Infinity)
+            object.meta_id = tracked_objects_count++;
     }
 }
