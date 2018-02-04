@@ -24,6 +24,10 @@ var point_speed = new Float32Array(point_count);
 var point_direction = [];
 var point = [];
 
+//tracked objects
+var tracked_objects_count = 0;
+var tracked_objects = [];
+
 // prepare / reset functions
 
 function prepare_image(ctx) {

@@ -25,12 +25,16 @@ function draw_objects(ctx, objects) {
     if(!debug)
         return;
 
-    for(var i=0; i < objects.length; ++i)
-        draw_object(ctx, objects[i], "purple", "1", "8px");
+    for(var i=0; i < objects.length; ++i){
+        if(objects[i].timestamp>0)
+            draw_object(ctx, objects[i], "purple", "1", "8px");
+        else
+            draw_object(ctx, objects[i], "cyan", "1", "8px");
+    }
 }
 
-function draw_object(ctx, object, color, thickness, font) {
-    if(!debug)
+function draw_object(ctx, object, color, thickness, font, overrideDebug) {
+    if(!debug && !overrideDebug)
         return;
         
     var width = object.right-object.left;
@@ -45,17 +49,17 @@ function draw_object(ctx, object, color, thickness, font) {
     ctx.font = font + "Comic Sans MS";
     ctx.fillStyle = color;
     ctx.textAlign = "center";
-    ctx.fillText("id:" + object.id, object.left, object.top - 15); 
+    ctx.fillText("id:" + object.meta_id, object.left, object.top - 15); 
 }
 
-function draw_log_objects(objects, speeds) {
+function draw_log_objects(objects) {
     if(!debug)
         return;
         
-    function add_row(object, speed) {
+    function add_row(object) {
         return "<tr>"
-             + "<td>" + object.id                 + "</td>"
-             + "<td>" + speed.toFixed(1)          + "</td>"
+             + "<td>" + object.meta_id            + "</td>"
+             + "<td>" + object.speed.toFixed(1)   + "</td>"
              + "<td>" + Math.floor(object.top)    + "</td>"
              + "<td>" + Math.floor(object.left)   + "</td>"
              + "<td>" + Math.floor(object.bottom) + "</td>"
@@ -74,7 +78,7 @@ function draw_log_objects(objects, speeds) {
         + "<th><div style='width:70px;'>right</div></th></tr>";
         
     for(var i=0; i<objects.length; ++i)
-        table += add_row(objects[i], speeds[objects[i].id]).replace("NaN","");
+        table += add_row(objects[i]).replace("NaN","");
     
     table += "</table>";
     

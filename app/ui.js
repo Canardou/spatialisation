@@ -17,6 +17,9 @@ function debug_on_off(){
 
 function play_pause() {
   if(file.paused) {
+      json = [];
+      logToJson.counter = 0;
+      
       file.play();
       btn.innerHTML = "Pause";
   }
