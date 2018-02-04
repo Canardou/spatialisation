@@ -17,21 +17,15 @@ function logToJson(objects){
         var object = objects[i];
         items.push({
             id:object.meta_id, 
-            bounding_box:{
-                left:object.left,
-                right:object.right,
-                top:object.top,
-                bottom:object.bottom
-            },
-            velocity:{
-                x:object.direction.x*object.speed,
-                y:object.direction.y*object.speed
-            }
+            x:object.middle.x,
+            y:object.middle.y,
+            width:object.right-object.left,
+            height:object.bottom-object.top
         })
     }
 
     json.push({
-        id:logToJson.counter++,
+        frame:logToJson.counter++,
         objects:items
     })
 }
