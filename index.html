@@ -8,7 +8,11 @@
         <video id="file" autoplay loop style="display: none;">
             <source src=IRIT01.webm type=video/webm>
         </video>
+        
         <p><canvas id="canvas"></canvas></p>
+        
+        <audio id="audio" controls></audio>
+        <br><br>
         
         <button id="play_pause" onclick="play_pause()" type="button">Pause</button>
         <button id="debug_on_off" onclick="debug_on_off()" type="button">Debug on</button>
@@ -18,8 +22,8 @@
         
         <script type="text/javascript" src="app/record.js"></script>
         <script type="text/javascript" src="app/data.js"></script>
-        <script type="text/javascript" src="app/ui.js"></script>
         <script type="text/javascript" src="app/audio.js"></script>
+        <script type="text/javascript" src="app/ui.js"></script>
         <script type="text/javascript" src="app/draw.js"></script>
         <script type="text/javascript" src="app/tool.js"></script>
         <script type="text/javascript" src="app/filtering.js"></script>
@@ -27,6 +31,7 @@
         
         <script type="text/javascript">
             "use strict";
+            file.currentTime = 17;
 
             window.onload = function() {
                 curr_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);

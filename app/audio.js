@@ -1,6 +1,8 @@
 var contexteAudio = new (window.AudioContext || window.webkitAudioContext)();
 var listener = contexteAudio.listener;
 
+var dest = contexteAudio.createMediaStreamDestination();
+
 var audio_files = ['steps.wav','waka.wav'];
 var sources = [];
 
@@ -19,9 +21,11 @@ for(var i = 0; i<audio_files.length; ++i) {
     // init at max distance to remove starting noise
     panner.setPosition(0,0,20000);
     
-    gain.connect(panner);
-    panner.connect(contexteAudio.destination);
     gain.gain.setValueAtTime(0.0, contexteAudio.currentTime);
+    gain.connect(panner);
+    
+    panner.connect(contexteAudio.destination);
+    panner.connect(dest);
     
     sources.push({
         panner: panner,

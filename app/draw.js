@@ -86,17 +86,18 @@ function draw_log_time(t0, t1, t2, t3, t4, t5) {
     if(!debug)
         return;
         
-    function add_row(title, time) {
+    function add_row(title, time, unit) {
         return "<tr><th>" + title + "</th><td>"
-             + time.toFixed(3) + "ms</td></tr>"
+             + time.toFixed(3) + unit + "</td></tr>"
     }
         
     log.innerHTML +=
        "<table id='benchmark'"
-      + add_row("Preparation donnees",      t1-t0)
-      + add_row("Lukas kanade",             t2-t1)
-      + add_row("Tri des points",           t3-t2)
-      + add_row("Rassemblement des points", t4-t3)
-      + add_row("Affichage et son",         t5-t4)
+      + add_row("Video time",               file.currentTime/60, "mn")
+      + add_row("Preparation donnees",      t1-t0, "ms")
+      + add_row("Lukas kanade",             t2-t1, "ms")
+      + add_row("Tri des points",           t3-t2, "ms")
+      + add_row("Rassemblement des points", t4-t3, "ms")
+      + add_row("Affichage et son",         t5-t4, "ms")
       + "</table>";
 }
