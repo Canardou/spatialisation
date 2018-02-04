@@ -1,7 +1,7 @@
 var contexteAudio = new (window.AudioContext || window.webkitAudioContext)();
 var listener = contexteAudio.listener;
 
-var audio_files = ['steps.wav','waka.wav'];
+var audio_files = ['steps.wav','waka.wav','car.wav'];
 var sources = [];
 
 for(var i = 0; i<audio_files.length; ++i) {

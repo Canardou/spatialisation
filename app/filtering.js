@@ -15,7 +15,7 @@ function prune_oflow_points(ctx) {
                 y:velocity.y/speed
             };
 
-            if(speed > win_size || speed < 1)
+            if(speed > win_size*2 || speed < 1)
                 point_status[i] = 0;
             else
                 draw_line(ctx, prev_xy[i<<1], prev_xy[(i<<1)+1], point_direction[i], speed, "green");
@@ -93,7 +93,7 @@ function build_object_and_merge_vectors () {
 }
 
 function merge_objects() {
-    var tmp_win_size = win_size;
+    var tmp_win_size = win_size*5;
     
     objects = objects.filter(e => (e.timestamp < 2));
     
@@ -108,7 +108,7 @@ function merge_objects() {
                         if(other.valid && is_rect_inside(current, other, tmp_win_size)) {
                             let dot_result = dot_product(current.direction, other.direction);
                             
-                            if(dot_result > 0.5) {
+                            if(dot_result > 0.8) {
                                 if (other.meta_id != 0 && other.meta_id < current.meta_id){
                                     current.meta_id = other.meta_id;
                                 }
@@ -128,7 +128,7 @@ function merge_objects() {
         }
     }
     //removed invalid items
-    tracked_objects = objects.filter(e => (e.valid && e.count > 3));
+    tracked_objects = objects.filter(e => (e.valid && e.count > 9));
 }
 
 function update_tracked_objects(){
