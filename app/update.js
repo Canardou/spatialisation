@@ -1,6 +1,10 @@
 function update_frame() {
-    if(file.paused)
+    if(file.paused){
+        draw_log_time(0, 0, 0, 0, 0, 0);
         return;
+    }
+        
+    var t0 = performance.now();
     
     canvas.width = file.videoWidth;
     canvas.height = file.videoHeight;
@@ -14,7 +18,6 @@ function update_frame() {
     if(mouse)
         draw_circle(ctx, mouse.x, mouse.y);
     
-    var t0 = performance.now();
     
     // copy the current frame and build the DCT
     prepare_image(ctx);
@@ -52,9 +55,9 @@ function update_frame() {
     
     update_sound_from_objects(ctx);
     
-    var t5 = performance.now();
     //should iterate a second time to merge close found vector and keep them in memory in between frame (kalman ?)
     logToJson(tracked_objects);
+    var t5 = performance.now();
     draw_log_time(t0, t1, t2, t3, t4, t5);
 }
 
@@ -84,7 +87,7 @@ function update_sound_from_objects(ctx) {
         sources[src_id].panner.setPosition(object.middle.x,object.middle.y,0);
         //if(navigator.userAgent.indexOf("Firefox"))
         //    sources[src_id].panner.setVelocity(point_direction[id].x, point_direction[id].y, 0);
-        sources[src_id].gain.gain.setValueAtTime(object.size/3000, contexteAudio.currentTime);
+        sources[src_id].gain.gain.setValueAtTime(object.size/300, contexteAudio.currentTime);
         draw_object(ctx, object, src_color[src_id], "2", "15px", true);
     }
 }

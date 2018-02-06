@@ -59,7 +59,7 @@ function init_audio() {
       listener.setOrientation(0,0,-1,0,1,0);
     }
     
-    listener.positionX.value = canvas.width/2;
-    listener.positionY.value = canvas.height/2;
+    listener.positionX.value = 352/2;
+    listener.positionY.value = 328/2;
     listener.positionZ.value = 50;
 }
