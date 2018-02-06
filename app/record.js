@@ -31,9 +31,13 @@ function logToJson(objects){
 }
 
 function download(text, name, type) {
-    var a = document.createElement("a");
+    window.URL = window.URL || window.webkitURL;
+    
     var file = new Blob([text], {type: type});
-    a.href = URL.createObjectURL(file);
-    a.download = name;
-    a.click();
+    
+    var link = document.getElementById("link");
+    link.href = window.URL.createObjectURL(file);
+    
+    link.download = name;
+    link.click();
 }
