@@ -6,14 +6,15 @@ function update_frame() {
         
     var t0 = performance.now();
     
-    canvas.width = file.videoWidth;
-    canvas.height = file.videoHeight;
+    canvas.width = 352;
+    canvas.height = 328;
+    let ratio = file.videoWidth/file.videoHeight;
     
     reset_static_point();
     reset_followed_points();
     
     var ctx = canvas.getContext('2d');
-    ctx.drawImage(file, 0, 0);
+    ctx.drawImage(file, 0, (328-352/ratio)/2, 352, 352/ratio);
     
     if(mouse)
         draw_circle(ctx, mouse.x, mouse.y);

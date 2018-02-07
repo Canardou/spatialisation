@@ -1,0 +1,101 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <script type="text/javascript" src="lib/jsfeat.js"></script>
+        <script type="text/javascript" src="lib/soundHelper.js"></script>
+    </head>
+    <body>
+        <video id="file" autoplay loop style="display: none;">
+        </video>
+        
+        <p><canvas id="canvas" width="352" height="328"></canvas></p>
+        
+        <button id="play_pause" onclick="play_pause()" type="button">Pause</button>
+        <button id="debug_on_off" onclick="debug_on_off()" type="button">Debug on</button>
+        <button id="save_data" onclick="download(JSON.stringify(json), 'json.txt', 'text/plain');" type="button">Save data</button><span id="save_data_log"></span>
+        <a id="link" style="display:none"></a>
+        
+        <div id="log"></div>
+        <br><audio id="audio" style="display:none" controls></audio>
+        
+        <script type="text/javascript" src="app/record.js"></script>
+        <script type="text/javascript" src="app/data.js"></script>
+        <script type="text/javascript" src="app/audio.js"></script>
+        <script type="text/javascript" src="app/ui.js"></script>
+        <script type="text/javascript" src="app/draw.js"></script>
+        <script type="text/javascript" src="app/tool.js"></script>
+        <script type="text/javascript" src="app/filtering.js"></script>
+        <script type="text/javascript" src="app/update.js"></script>
+        
+        <script type="text/javascript">
+            "use strict";
+            var video = document.getElementById('file');
+            var videoStream = null;
+            
+            function noStream()
+            {
+            	log('Access to camera was denied!');
+            }
+            
+            function log(text)
+            {
+            	alert(text);
+            }
+            
+            
+           function gotStream(stream)
+            {
+            	videoStream = stream;
+            	log('Got stream.');
+            	video.onerror = function ()
+            	{
+            		log('video.onerror');
+            		if (video) stop();
+            	};
+            	stream.onended = noStream;
+            	if (window.URL) video.src = window.URL.createObjectURL(stream);
+            	else if (video.mozSrcObject !== undefined)
+            	{//FF18a
+            		video.mozSrcObject = stream;
+            		video.play();
+            	}
+            	else if (navigator.mozGetUserMedia)
+            	{//FF16a, 17a
+            		video.src = stream;
+            		video.play();
+            	}
+            	else if (window.URL) video.src = window.URL.createObjectURL(stream);
+            	else video.src = stream;
+            }
+            
+            function start()
+            {
+            	if ((typeof window === 'undefined') || (typeof navigator === 'undefined')) log('This page needs a Web browser with the objects window.* and navigator.*!');
+            	else if (!(video && canvas)) log('HTML context error!');
+            	else
+            	{
+            		log('Get user media…');
+            		if (navigator.getUserMedia) navigator.getUserMedia({video:true}, gotStream, noStream);
+            		else if (navigator.oGetUserMedia) navigator.oGetUserMedia({video:true}, gotStream, noStream);
+            		else if (navigator.mozGetUserMedia) navigator.mozGetUserMedia({video:true}, gotStream, noStream);
+            		else if (navigator.webkitGetUserMedia) navigator.webkitGetUserMedia({video:true}, gotStream, noStream);
+            		else if (navigator.msGetUserMedia) navigator.msGetUserMedia({video:true, audio:false}, gotStream, noStream);
+            		else log('getUserMedia() not available from your Web browser!');
+            	}
+            }
+        
+            start();
+
+            window.onload = function() {
+                curr_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
+                prev_img_pyr.allocate(canvas.width, canvas.height, jsfeat.U8_t|jsfeat.C1_t);
+        
+                window.setInterval(update_frame, 67);
+                
+                init_audio();
+            }
+            
+            window.addEventListener('mousemove', getMousePos, false);
+        </script>
+    </body>
+</html>
