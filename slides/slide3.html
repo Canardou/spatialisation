@@ -6,7 +6,7 @@
     </head>
     <body>
         
-        <h3>Suivi de points avec Lukas-Kanade</h3>
+        <h3>Suivi de zones de mouvement</h3>
         <table>
             <tr>
                 <td><img width=50% src="vectors.png"/><img width=50% src="bbox.png"/></td>
@@ -14,11 +14,20 @@
             </tr>
         </table>
         
-        <ul>
-            <li>Leur produit scalaire est supérieur à 0.8 (Critère de colinéarité)</li>
-            <li>La distance de leur origine est inférieur à 80px (Même zone)</li>
-            <li>La différence de leur vitesse est inférieur à 2px/image (Même vitesse)</li>
-        </ul>
+        
+        <table>
+            <tr>
+                <th colspan="2"><center>Critères</center><th>
+            </tr>
+            <tr>
+                <td>Colinéarité</td>
+                <td>Distance</td>
+            </tr>
+            <tr>
+                <td>Vitesse</td>
+                <td>Historique</td>
+            </tr>
+        </table>
         
         <br>
         <a href="slide4.html">next</a>
