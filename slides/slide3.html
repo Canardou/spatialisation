@@ -7,16 +7,21 @@
     <body>
         
         <h3>Suivi de points avec Lukas-Kanade</h3>
-
-        <br><br>
-        
         <table>
-            <tr><td><img src="vectors.png"/></td><td><img src="bbox.png"/></td></tr>
+            <tr>
+                <td><img width=50% src="vectors.png"/><img width=50% src="bbox.png"/></td>
+                <td><img width=50% src="objects.png"/><img width=50% src="follow.png"/></td>
+            </tr>
         </table>
+        
+        <ul>
+            <li>Leur produit scalaire est supérieur à 0.8 (Critère de colinéarité)</li>
+            <li>La distance de leur origine est inférieur à 80px (Même zone)</li>
+            <li>La différence de leur vitesse est inférieur à 2px/image (Même vitesse)</li>
+        </ul>
         
         <br>
         <a href="slide4.html">next</a>
 
-        
     </body>
 </html>
