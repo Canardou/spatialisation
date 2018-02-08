@@ -1,0 +1,25 @@
+body {
+    color: #fff;
+    background-color: #2D2F33;
+    font-size: 3em;
+    text-align: center;
+    padding-left: 5%;
+    padding-right: 5%;
+}
+
+body p {
+    text-align: justify;
+}
+body ul {
+    text-align: left;
+}
+
+body table {
+    width: 100%;
+    font-size: 1em;
+    text-align: center;
+}
+
+body td {
+    width: 50%;
+}
